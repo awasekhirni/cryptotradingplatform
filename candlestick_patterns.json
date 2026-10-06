@@ -1,0 +1,2559 @@
+{
+  "metadata": {
+    "title": "Universal Candlestick Pattern Engine",
+    "subtitle": "A global reference for algorithmic trading — read by kids, traders, engineers and computed by machines",
+    "sources": [
+
+      "TA-Lib - 61 CDL Pattern Recognition Functions",
+      "Steve Nison - Japanese Candlestick Charting Techniques",
+      "Thomas Bulkowski - Encyclopedia of Candlestick Charts"
+    ],
+    "todo":["need to enhance this json with more relevant emojis. need to check if AI may offer more vector icons or need to look at other vector icons"],
+    "version": "4.0.0",
+    "last_updated": "2026-10-05",
+    "audience": {
+      "humans": "Anyone — from a 5-year-old to a professional trader — can understand what each pattern means",
+      "machines": "Full mathematical rigor for direct implementation in trading engines"
+    },
+    "total_patterns": 61,
+    "how_to_read_this_document": {
+      "kid_friendly": "Read the 'story' field. It explains the pattern like a bedtime story.",
+      "trader": "Read 'description', 'psychology', 'when_to_apply', and 'entry/exit'.",
+      "engineer": "Read 'mathematical_definition', 'computational_formula', and 'algorithmic_pseudocode'."
+    },
+    "notation": {
+      "O": "Open price",
+      "H": "High price",
+      "L": "Low price",
+      "C": "Close price",
+      "V": "Volume",
+      "i": "Current candle index (i-1 = previous)",
+      "Body": "|C - O|",
+      "Range": "H - L",
+      "UpperWick": "H - max(O, C)",
+      "LowerWick": "min(O, C) - L",
+      "Bullish": "C > O",
+      "Bearish": "C < O",
+      "ATR(n)": "Average True Range over n periods",
+      "SMA(x, n)": "Simple Moving Average of x over n periods"
+    }
+  },
+
+  "universal_formulas": {
+    "description": "Building blocks used by every pattern.",
+    "kid_analogy": {
+      "body": "The fat colored part of the candle — like the chocolate in a candy bar.",
+      "wick": "The thin line sticking out — like a toothpick through a marshmallow.",
+      "range": "From the very top tip to the very bottom tip."
+    },
+    "candle_anatomy": {
+      "body": "Body(i) = |C(i) - O(i)|",
+      "range": "Range(i) = H(i) - L(i)",
+      "upper_wick": "UpperWick(i) = H(i) - max(O(i), C(i))",
+      "lower_wick": "LowerWick(i) = min(O(i), C(i)) - L(i)",
+      "body_percent": "BodyPct(i) = Body(i) / Range(i) × 100",
+      "midpoint": "Midpoint(i) = (O(i) + C(i)) / 2"
+    },
+    "trend_detection": {
+      "sma_trend": {
+        "uptrend": "SMA(C,20) > SMA(C,50) AND C > SMA(C,20)",
+        "downtrend": "SMA(C,20) < SMA(C,50) AND C < SMA(C,20)"
+      },
+      "adx_trend": "ADX(14) > 25 → trending; ADX(14) < 20 → ranging"
+    },
+    "volume_confirmation": {
+      "volume_spike": "V(i) > SMA(V, 20) × 1.5",
+      "volume_ratio": "VR(i) = V(i) / SMA(V, 20)"
+    },
+    "atr_normalization": {
+      "true_range": "TR(i) = max(H(i) - L(i), |H(i) - C(i-1)|, |L(i) - C(i-1)|)",
+      "atr": "ATR(n) = SMA(TR, n)",
+      "normalized_body": "NormBody(i) = Body(i) / ATR(14)"
+    },
+    "confidence_scoring": {
+      "formula": "confidence = min(wick_ratio / threshold, 1.0) × min(body_ratio / threshold, 1.0) × min(volume_ratio / 1.5, 1.0)",
+      "range": "0.0 (weak) to 1.0 (very strong)"
+    }
+  },
+
+  "patterns": [
+    {
+      "id": "CP001",
+      "name": "Hammer",
+      "category": "bullish_reversal",
+      "candle_count": 1,
+      "kid_friendly": {
+        "story": "Imagine a ball falls down a big hill. Just before hitting the ground, a giant hand swoops in and pushes it back up! That's a Hammer.",
+        "analogy": "A hammer hitting the ground and bouncing back up.",
+        "looks_like": "A small green or red square with a long tail hanging below it.",
+        "emoji": "🔨"
+      },
+      "description": "Single candle with small body near the top, long lower wick, little to no upper wick, appearing at the bottom of a downtrend.",
+      "psychology": "Sellers drove prices down but buyers rejected lower prices and pushed the price back up before close.",
+      "mathematical_definition": {
+        "body_condition": "Body(i) ≤ 0.25 × Range(i)",
+        "lower_wick_condition": "LowerWick(i) ≥ 2 × Body(i)",
+        "upper_wick_condition": "UpperWick(i) ≤ 0.1 × Range(i)",
+        "range_condition": "Range(i) ≥ 0.5 × ATR(14)",
+        "location_condition": "Close(i-1) < Close(i-5)"
+      },
+      "computational_formula": "Hammer(i) = (Body(i) ≤ 0.25×Range(i)) AND (LowerWick(i) ≥ 2×Body(i)) AND (UpperWick(i) ≤ 0.1×Range(i)) AND (Range(i) ≥ 0.5×ATR(14)) AND (C(i-1) < C(i-5))",
+      "algorithmic_pseudocode": "body = abs(C(i)-O(i)); range = H(i)-L(i); upper = H(i)-max(O(i),C(i)); lower = min(O(i),C(i))-L(i); IF body <= 0.25*range AND lower >= 2*body AND upper <= 0.1*range AND range >= 0.5*ATR(14) AND TrendContext=='Downtrend': RETURN +100",
+      "formula_parameters": {
+        "body_max_pct": 0.25,
+        "lower_wick_multiplier": 2.0,
+        "upper_wick_max_pct": 0.1,
+        "atr_range_multiplier": 0.5,
+        "atr_period": 14
+      },
+      "when_to_apply": {
+        "scenario": "After a long fall in price, near support level or RSI below 30.",
+        "best_markets": ["Stocks", "Forex", "Crypto", "Commodities"],
+        "best_timeframes": ["Daily", "Weekly", "4H"]
+      },
+      "entry": {
+        "aggressive": "Buy-stop 0.1-0.3% above hammer high",
+        "conservative": "Enter long when next candle closes above hammer high"
+      },
+      "stop_loss": "Below L(i) or ~1×ATR(14) under entry",
+      "take_profit": "Nearest swing high; scale at 1.5-2R multiples",
+      "outcome": "Bullish reversal; potential uptrend",
+      "risk": "Medium",
+      "confirmation": ["Bullish candle following", "Volume spike", "RSI < 30 turning up"],
+      "reliability": "High (65.2% winners three days after signal per IJSRED study)",
+      "notes": "Longer lower wick = stronger signal. Green hammer stronger than red."
+    },
+    {
+      "id": "CP002",
+      "name": "Inverted Hammer",
+      "category": "bullish_reversal",
+      "candle_count": 1,
+      "kid_friendly": {
+        "story": "A ball is rolling down. Someone tries to bounce it UP, but it falls back. Even though it fell, the fact someone TRIED means the buyers are waking up!",
+        "analogy": "A rocket trying to launch but falling back.",
+        "looks_like": "A small square with a long stick pointing UP from the top.",
+        "emoji": "🙃"
+      },
+      "description": "Single candle with small body at bottom, long upper wick, little to no lower wick, after a downtrend.",
+      "psychology": "Buyers tried to push prices up but sellers resisted. Yet, the attempt signals buyers are emerging.",
+      "mathematical_definition": {
+        "body_condition": "Body(i) ≤ 0.3 × Range(i)",
+        "upper_wick_condition": "UpperWick(i) ≥ 2 × Body(i)",
+        "lower_wick_condition": "LowerWick(i) ≤ 0.1 × Range(i)",
+        "location_condition": "Close(i-1) < Close(i-5)"
+      },
+      "computational_formula": "InvertedHammer(i) = (Body(i) ≤ 0.3×Range(i)) AND (UpperWick(i) ≥ 2×Body(i)) AND (LowerWick(i) ≤ 0.1×Range(i)) AND (C(i-1) < C(i-5))",
+      "algorithmic_pseudocode": "IF body<=0.3*range AND upper>=2*body AND lower<=0.1*range AND TrendContext=='Downtrend': RETURN +100",
+      "formula_parameters": {
+        "body_max_pct": 0.3,
+        "upper_wick_multiplier": 2.0,
+        "lower_wick_max_pct": 0.1
+      },
+      "when_to_apply": {
+        "scenario": "End of a downtrend, near support, RSI oversold but starting to rise.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Buy-stop 0.1-0.3% above high after confirmation candle",
+        "conservative": "Wait for a bullish candle closing above inverted hammer high"
+      },
+      "stop_loss": "Below inverted hammer low",
+      "take_profit": "First = nearest swing high; extend 1.5-2R",
+      "outcome": "Bullish reversal",
+      "risk": "Medium-High",
+      "confirmation": ["Bullish confirmation candle", "Volume increase", "Support bounce"],
+      "reliability": "Medium (53-65% win ratio per Quantified Strategies SPY backtest)",
+      "notes": "Needs more confirmation than a regular hammer."
+    },
+    {
+      "id": "CP003",
+      "name": "Hanging Man",
+      "category": "bearish_reversal",
+      "candle_count": 1,
+      "kid_friendly": {
+        "story": "A balloon is floating up, up, up. Then someone tugs on the string — it doesn't fall yet, but everyone gets worried.",
+        "analogy": "A climber at the top of a cliff suddenly slips a little.",
+        "looks_like": "Same shape as Hammer, but appears at the TOP of an uptrend.",
+        "emoji": "😰"
+      },
+      "description": "Single candle with small body at top, long lower wick, appearing at the end of an uptrend.",
+      "psychology": "Sellers pushed prices down but buyers recovered. The appearance of selling pressure warns of potential reversal.",
+      "mathematical_definition": {
+        "body_condition": "Body(i) ≤ 0.3 × Range(i)",
+        "lower_wick_condition": "LowerWick(i) ≥ 2 × Body(i)",
+        "upper_wick_condition": "UpperWick(i) ≤ 0.1 × Range(i)",
+        "location_condition": "Close(i-1) > Close(i-5)"
+      },
+      "computational_formula": "HangingMan(i) = (Body(i) ≤ 0.3×Range(i)) AND (LowerWick(i) ≥ 2×Body(i)) AND (UpperWick(i) ≤ 0.1×Range(i)) AND (C(i-1) > C(i-5))",
+      "algorithmic_pseudocode": "IF body<=0.3*range AND lower>=2*body AND upper<=0.1*range AND TrendContext=='Uptrend': RETURN -100",
+      "formula_parameters": {
+        "body_max_pct": 0.3,
+        "lower_wick_multiplier": 2.0,
+        "upper_wick_max_pct": 0.1
+      },
+      "when_to_apply": {
+        "scenario": "After strong uptrend, near resistance, RSI above 70.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Sell-stop 0.1-0.3% below low if confirmed with red close",
+        "conservative": "Wait for next candle to close below hanging man low"
+      },
+      "stop_loss": "Above hanging man high",
+      "take_profit": "Nearest swing low; scale out at 1.5-2R",
+      "outcome": "Bearish reversal; potential downtrend",
+      "risk": "Medium",
+      "confirmation": ["Bearish confirmation candle", "Volume increase", "Resistance rejection"],
+      "reliability": "Medium-High (55-60% accuracy per Journal of Technical Analysis)",
+      "notes": "Red hanging man is stronger bearish signal."
+    },
+    {
+      "id": "CP004",
+      "name": "Shooting Star",
+      "category": "bearish_reversal",
+      "candle_count": 1,
+      "kid_friendly": {
+        "story": "A firework shoots up into the sky — beautiful! — but then it fizzles and falls all the way back down.",
+        "analogy": "A rocket that runs out of fuel mid-flight.",
+        "looks_like": "A small square with a long stick pointing UP, at the top of an uptrend.",
+        "emoji": "💫"
+      },
+      "description": "Single candle with long upper wick, small body near low, little to no lower wick, after an uptrend.",
+      "psychology": "Buyers pushed prices higher but sellers took control and drove price back down.",
+      "mathematical_definition": {
+        "body_condition": "Body(i) ≤ 0.3 × Range(i)",
+        "upper_wick_condition": "UpperWick(i) ≥ 2 × Body(i)",
+        "lower_wick_condition": "LowerWick(i) ≤ 0.1 × Range(i)",
+        "location_condition": "Close(i-1) > Close(i-5)"
+      },
+      "computational_formula": "ShootingStar(i) = (Body(i) ≤ 0.3×Range(i)) AND (UpperWick(i) ≥ 2×Body(i)) AND (LowerWick(i) ≤ 0.1×Range(i)) AND (C(i-1) > C(i-5))",
+      "algorithmic_pseudocode": "IF body<=0.3*range AND upper>=2*body AND lower<=0.1*range AND TrendContext=='Uptrend': RETURN -100",
+      "formula_parameters": {
+        "body_max_pct": 0.3,
+        "upper_wick_multiplier": 2.0,
+        "lower_wick_max_pct": 0.1
+      },
+      "when_to_apply": {
+        "scenario": "End of uptrend, near resistance, overbought RSI (>70).",
+        "best_timeframes": ["Daily", "Weekly", "4H"]
+      },
+      "entry": {
+        "aggressive": "Sell-stop 0.1-0.3% below low; aggressive shorts if close near low on heavy volume",
+        "conservative": "Wait for bearish candle or break of shooting star low"
+      },
+      "stop_loss": "Above shadow high",
+      "take_profit": "Nearest swing low; extend at 1.5-2R",
+      "outcome": "Bearish reversal",
+      "risk": "Medium",
+      "confirmation": ["Bearish confirmation candle", "Volume increase", "Break of shooting star low"],
+      "reliability": "High (57.1% upside success rate per Liberated Stock Trader)",
+      "notes": "Reliable near strong resistance zones."
+    },
+    {
+      "id": "CP005",
+      "name": "Doji",
+      "category": "neutral_indecision",
+      "candle_count": 1,
+      "kid_friendly": {
+        "story": "Two teams are playing tug-of-war. Nobody wins! The rope stays right in the middle.",
+        "analogy": "A seesaw perfectly balanced.",
+        "looks_like": "A tiny little dash or plus sign — no real body.",
+        "emoji": "⚖️"
+      },
+      "description": "Opening and closing prices virtually equal; very small or nonexistent body.",
+      "psychology": "Market indecision. Neither buyers nor sellers gained control.",
+      "mathematical_definition": {
+        "body_condition": "Body(i) ≤ 0.05 × Range(i)",
+        "shadow_balance": "|UpperWick - LowerWick| ≤ 0.2 × Range(i)"
+      },
+      "computational_formula": "Doji(i) = (Body(i) ≤ 0.05×Range(i)) AND (|UpperWick(i)-LowerWick(i)| ≤ 0.2×Range(i))",
+      "algorithmic_pseudocode": "IF body <= 0.05*range AND abs(upper-lower) <= 0.2*range: RETURN 0",
+      "formula_parameters": {
+        "body_max_pct": 0.05,
+        "shadow_balance_max": 0.2
+      },
+      "variants": {
+        "Gravestone Doji": "Long upper wick — bearish",
+        "Dragonfly Doji": "Long lower wick — bullish",
+        "Long-Legged Doji": "Both wicks long — extreme indecision"
+      },
+      "when_to_apply": {
+        "scenario": "After strong trend, near support/resistance, before big news.",
+        "best_timeframes": ["All"]
+      },
+      "entry": {
+        "aggressive": "Trade breakout direction of next candle",
+        "conservative": "Wait for confirmation from RSI and volume"
+      },
+      "stop_loss": "Based on breakout direction",
+      "take_profit": "Based on prevailing trend",
+      "outcome": "Potential reversal or continuation",
+      "risk": "High (ambiguous alone)",
+      "confirmation": ["Breakout candle", "Volume spike", "RSI divergence"],
+      "reliability": "Low standalone; Medium with confirmation",
+      "notes": "Doji means 'same thing' in Japanese."
+    },
+    {
+      "id": "CP006",
+      "name": "Dragonfly Doji",
+      "category": "bullish_reversal",
+      "candle_count": 1,
+      "kid_friendly": {
+        "story": "A dragonfly hovers near the ground — its body is at the top, but its long tail touches the ground. It's telling us, 'The ground is safe! Let's fly up!'",
+        "analogy": "A dragonfly resting on the ground, ready to take off.",
+        "looks_like": "Like the letter 'T' — a tiny body on top and a long line pointing down.",
+        "emoji": "🪰"
+      },
+      "description": "Doji variant where open, close, and high are at same level, creating a long lower shadow and no upper shadow.",
+      "psychology": "Sellers pushed prices down but buyers rejected the lows and pushed prices back to open.",
+      "mathematical_definition": {
+        "body_condition": "Body(i) ≤ 0.05 × Range(i)",
+        "upper_wick_condition": "UpperWick(i) ≤ 0.02 × Range(i)",
+        "lower_wick_condition": "LowerWick(i) ≥ 0.6 × Range(i)",
+        "location_condition": "Close(i-1) < Close(i-5)"
+      },
+      "computational_formula": "DragonflyDoji(i) = (Body(i)≤0.05×Range(i)) AND (UpperWick(i)≤0.02×Range(i)) AND (LowerWick(i)≥0.6×Range(i)) AND (C(i-1)<C(i-5))",
+      "algorithmic_pseudocode": "IF body<=0.05*range AND upper<=0.02*range AND lower>=0.6*range AND TrendContext=='Downtrend': RETURN +100",
+      "formula_parameters": {
+        "body_max_pct": 0.05,
+        "upper_wick_max_pct": 0.02,
+        "lower_wick_min_pct": 0.6
+      },
+      "when_to_apply": {
+        "scenario": "Bottom of downtrend, near support level.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long when next candle opens above doji close",
+        "conservative": "Wait for bullish confirmation candle"
+      },
+      "stop_loss": "Below L(i)",
+      "take_profit": "Nearest resistance",
+      "outcome": "Bullish reversal",
+      "risk": "Medium",
+      "confirmation": ["Bullish candle following", "Volume increase", "RSI oversold"],
+      "reliability": "Medium-High",
+      "notes": "Dragonfly Doji at support = strong bullish signal."
+    },
+    {
+      "id": "CP007",
+      "name": "Gravestone Doji",
+      "category": "bearish_reversal",
+      "candle_count": 1,
+      "kid_friendly": {
+        "story": "A stone standing tall reaches up to the sky, but it has no bottom. Buyers tried to reach the sky, but the ground pulled them back down.",
+        "analogy": "A rocket that shoots up but has no fuel.",
+        "looks_like": "Like an upside-down 'T' — tiny body at bottom, long line pointing up.",
+        "emoji": "🪦"
+      },
+      "description": "Doji variant where open, close, and low are at same level, creating a long upper shadow and no lower shadow.",
+      "psychology": "Buyers pushed prices up but sellers rejected the highs and pushed prices back to open.",
+      "mathematical_definition": {
+        "body_condition": "Body(i) ≤ 0.05 × Range(i)",
+        "upper_wick_condition": "UpperWick(i) ≥ 0.6 × Range(i)",
+        "lower_wick_condition": "LowerWick(i) ≤ 0.02 × Range(i)",
+        "location_condition": "Close(i-1) > Close(i-5)"
+      },
+      "computational_formula": "GravestoneDoji(i) = (Body(i)≤0.05×Range(i)) AND (UpperWick(i)≥0.6×Range(i)) AND (LowerWick(i)≤0.02×Range(i)) AND (C(i-1)>C(i-5))",
+      "algorithmic_pseudocode": "IF body<=0.05*range AND upper>=0.6*range AND lower<=0.02*range AND TrendContext=='Uptrend': RETURN -100",
+      "formula_parameters": {
+        "body_max_pct": 0.05,
+        "upper_wick_min_pct": 0.6,
+        "lower_wick_max_pct": 0.02
+      },
+      "when_to_apply": {
+        "scenario": "Top of uptrend, near resistance level.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short when next candle opens below doji close",
+        "conservative": "Wait for bearish confirmation candle"
+      },
+      "stop_loss": "Above H(i)",
+      "take_profit": "Nearest support",
+      "outcome": "Bearish reversal",
+      "risk": "Medium",
+      "confirmation": ["Bearish candle following", "Volume increase", "RSI overbought"],
+      "reliability": "Medium-High",
+      "notes": "Gravestone Doji at resistance = strong bearish signal."
+    },
+    {
+      "id": "CP008",
+      "name": "Long Legged Doji",
+      "category": "neutral_indecision",
+      "candle_count": 1,
+      "kid_friendly": {
+        "story": "Both teams pushed and pulled all day, but nobody won. The rope is right in the middle and everyone is tired.",
+        "analogy": "A very long seesaw that went up and down equally.",
+        "looks_like": "A tiny body in the middle with two very long wicks.",
+        "emoji": "📏"
+      },
+      "description": "Doji variant with exceptionally long upper and lower shadows, signifying extreme indecision.",
+      "psychology": "Both sides pushed aggressively but neither maintained control.",
+      "mathematical_definition": {
+        "body_condition": "Body(i) ≤ 0.05 × Range(i)",
+        "upper_wick_condition": "UpperWick(i) ≥ 0.3 × Range(i)",
+        "lower_wick_condition": "LowerWick(i) ≥ 0.3 × Range(i)"
+      },
+      "computational_formula": "LongLeggedDoji(i) = (Body(i)≤0.05×Range(i)) AND (UpperWick(i)≥0.3×Range(i)) AND (LowerWick(i)≥0.3×Range(i))",
+      "algorithmic_pseudocode": "IF body<=0.05*range AND upper>=0.3*range AND lower>=0.3*range: RETURN 0",
+      "formula_parameters": {
+        "body_max_pct": 0.05,
+        "wick_min_pct": 0.3
+      },
+      "when_to_apply": {
+        "scenario": "After a strong trend, before a major breakout.",
+        "best_timeframes": ["Daily", "Weekly", "4H"]
+      },
+      "entry": {
+        "aggressive": "Trade breakout direction of next candle",
+        "conservative": "Wait for clear directional confirmation"
+      },
+      "stop_loss": "Based on breakout direction",
+      "take_profit": "Based on prevailing trend",
+      "outcome": "Potential reversal or continuation",
+      "risk": "High",
+      "confirmation": ["Breakout candle", "Volume spike"],
+      "reliability": "Low standalone; Medium with confirmation",
+      "notes": "Extreme indecision — a big move often follows."
+    },
+    {
+      "id": "CP009",
+      "name": "Bullish Spinning Top",
+      "category": "neutral_indecision",
+      "candle_count": 1,
+      "kid_friendly": {
+        "story": "A spinning top wobbles left, wobbles right, but stays in place. Slightly leaning green.",
+        "analogy": "A coin spinning on a table — you don't know which side it'll land on.",
+        "looks_like": "Small body with two wicks sticking out equally, slightly green.",
+        "emoji": "🌀"
+      },
+      "description": "Small real body with long upper and lower wicks of roughly equal length, with a slight bullish bias.",
+      "psychology": "Bulls and bears fought hard but neither won. Market is pausing.",
+      "mathematical_definition": {
+        "body_condition": "Body(i) ≤ 0.3 × Range(i)",
+        "wick_condition": "UpperWick(i) ≥ 0.25 × Range(i) AND LowerWick(i) ≥ 0.25 × Range(i)",
+        "color_condition": "C(i) > O(i)"
+      },
+      "computational_formula": "BullishSpinningTop(i) = (Body(i)≤0.3×Range(i)) AND (UpperWick(i)≥0.25×Range(i)) AND (LowerWick(i)≥0.25×Range(i)) AND (C(i)>O(i))",
+      "algorithmic_pseudocode": "IF body<=0.3*range AND upper>=0.25*range AND lower>=0.25*range AND bullish(i): RETURN 0",
+      "formula_parameters": {
+        "body_max_pct": 0.3,
+        "wick_min_pct": 0.25
+      },
+      "when_to_apply": {
+        "scenario": "During a trend as reversal warning, or during consolidation.",
+        "best_timeframes": ["Daily", "4H", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Trade direction of next candle",
+        "conservative": "Wait for clear breakout"
+      },
+      "stop_loss": "Based on breakout direction",
+      "take_profit": "Based on prevailing trend",
+      "outcome": "Potential reversal or continuation",
+      "risk": "Medium-High",
+      "confirmation": ["Breakout candle", "Volume increase"],
+      "reliability": "Medium",
+      "notes": "Slight bullish bias due to green body."
+    },
+    {
+      "id": "CP010",
+      "name": "Bearish Spinning Top",
+      "category": "neutral_indecision",
+      "candle_count": 1,
+      "kid_friendly": {
+        "story": "A spinning top wobbles left, wobbles right, but stays in place. Slightly leaning red.",
+        "analogy": "A coin spinning on a table — slightly tilted toward red.",
+        "looks_like": "Small body with two wicks sticking out equally, slightly red.",
+        "emoji": "🌀"
+      },
+      "description": "Small real body with long upper and lower wicks of roughly equal length, with a slight bearish bias.",
+      "psychology": "Bulls and bears fought hard but neither won. Market is pausing.",
+      "mathematical_definition": {
+        "body_condition": "Body(i) ≤ 0.3 × Range(i)",
+        "wick_condition": "UpperWick(i) ≥ 0.25 × Range(i) AND LowerWick(i) ≥ 0.25 × Range(i)",
+        "color_condition": "C(i) < O(i)"
+      },
+      "computational_formula": "BearishSpinningTop(i) = (Body(i)≤0.3×Range(i)) AND (UpperWick(i)≥0.25×Range(i)) AND (LowerWick(i)≥0.25×Range(i)) AND (C(i)<O(i))",
+      "algorithmic_pseudocode": "IF body<=0.3*range AND upper>=0.25*range AND lower>=0.25*range AND bearish(i): RETURN 0",
+      "formula_parameters": {
+        "body_max_pct": 0.3,
+        "wick_min_pct": 0.25
+      },
+      "when_to_apply": {
+        "scenario": "During a trend as reversal warning, or during consolidation.",
+        "best_timeframes": ["Daily", "4H", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Trade direction of next candle",
+        "conservative": "Wait for clear breakout"
+      },
+      "stop_loss": "Based on breakout direction",
+      "take_profit": "Based on prevailing trend",
+      "outcome": "Potential reversal or continuation",
+      "risk": "Medium-High",
+      "confirmation": ["Breakout candle", "Volume increase"],
+      "reliability": "Medium",
+      "notes": "Slight bearish bias due to red body."
+    },
+    {
+      "id": "CP011",
+      "name": "High-Wave Candle",
+      "category": "neutral_indecision",
+      "candle_count": 1,
+      "kid_friendly": {
+        "story": "A crazy wave goes up and down and up and down — the surfer can't stay on top! Total chaos!",
+        "analogy": "A rollercoaster with a tiny car in the middle.",
+        "looks_like": "A tiny body with two very long, wild wicks.",
+        "emoji": "🌊"
+      },
+      "description": "Single candle with long shadows and a small real body, reflecting high volatility and indecision.",
+      "psychology": "Extreme volatility with no clear direction — a battle with no winner.",
+      "mathematical_definition": {
+        "body_condition": "Body(i) ≤ 0.2 × Range(i)",
+        "upper_wick_condition": "UpperWick(i) ≥ 0.3 × Range(i)",
+        "lower_wick_condition": "LowerWick(i) ≥ 0.3 × Range(i)"
+      },
+      "computational_formula": "HighWave(i) = (Body(i)≤0.2×Range(i)) AND (UpperWick(i)≥0.3×Range(i)) AND (LowerWick(i)≥0.3×Range(i))",
+      "algorithmic_pseudocode": "IF body<=0.2*range AND upper>=0.3*range AND lower>=0.3*range: RETURN 0",
+      "formula_parameters": {
+        "body_max_pct": 0.2,
+        "wick_min_pct": 0.3
+      },
+      "when_to_apply": {
+        "scenario": "During high volatility periods, after news events.",
+        "best_timeframes": ["Daily", "4H"]
+      },
+      "entry": {
+        "aggressive": "Wait for next candle's direction",
+        "conservative": "Wait for multiple confirmations"
+      },
+      "stop_loss": "Based on next candle's range",
+      "take_profit": "Based on prevailing trend",
+      "outcome": "Extreme indecision — wait and watch",
+      "risk": "Very High",
+      "confirmation": ["Strong directional candle", "Volume spike"],
+      "reliability": "Low (confirmed only 42% of the time per Bulkowski)",
+      "notes": "Indicates maximum uncertainty."
+    },
+    {
+      "id": "CP012",
+      "name": "Pin Bar",
+      "category": "reversal",
+      "candle_count": 1,
+      "kid_friendly": {
+        "story": "A pin sticks into the ground — deep! But the balloon on top stays up. The ground couldn't hold it down.",
+        "analogy": "A pushpin stuck in a corkboard — the pin goes deep but the top stays out.",
+        "looks_like": "A long tail with a small body at one end.",
+        "emoji": "📌"
+      },
+      "description": "Single-candle pattern with a long tail (at least two-thirds of total range) and a small body, signaling strong price rejection.",
+      "psychology": "Strong rejection of a price level — the market tried to go one way but was pushed back hard.",
+      "mathematical_definition": {
+        "wick_condition": "max(UpperWick, LowerWick) ≥ 0.66 × Range(i)",
+        "body_condition": "Body(i) ≤ 0.3 × Range(i)"
+      },
+      "computational_formula": "PinBar(i) = (max(UpperWick(i), LowerWick(i)) ≥ 0.66×Range(i)) AND (Body(i) ≤ 0.3×Range(i))",
+      "algorithmic_pseudocode": "IF max(upper, lower) >= 0.66*range AND body <= 0.3*range: RETURN +100 IF lower is the long wick, -100 IF upper is the long wick",
+      "formula_parameters": {
+        "wick_min_pct": 0.66,
+        "body_max_pct": 0.3
+      },
+      "when_to_apply": {
+        "scenario": "At key support/resistance levels, after strong moves.",
+        "best_timeframes": ["Daily", "4H", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter on break of pin bar high (bullish) or low (bearish)",
+        "conservative": "Wait for confirmation candle"
+      },
+      "stop_loss": "Below/above the pin bar wick",
+      "take_profit": "Nearest opposing level",
+      "outcome": "Reversal signal",
+      "risk": "Medium",
+      "confirmation": ["Confirmation candle", "Volume increase"],
+      "reliability": "High (60-65% success per Al Brooks studies)",
+      "notes": "Bullish pin bar has long lower wick; bearish pin bar has long upper wick."
+    },
+    {
+      "id": "CP013",
+      "name": "Marubozu",
+      "category": "continuation",
+      "candle_count": 1,
+      "kid_friendly": {
+        "story": "A green or red arrow shoots STRAIGHT UP or DOWN with no wiggles at all — nothing but pure color from bottom to top!",
+        "analogy": "A laser beam — no bends, just straight.",
+        "looks_like": "A long rectangle with no wicks at all.",
+        "emoji": "🟩🟥"
+      },
+      "description": "Long body with virtually no upper or lower wicks; open equals one extreme and close equals the other.",
+      "psychology": "Complete dominance by either buyers (bullish) or sellers (bearish) throughout the session.",
+      "mathematical_definition": {
+        "body_condition": "Body(i) > SMA(Body, 5)",
+        "upper_wick_condition": "UpperWick(i) < 0.05 × Range(i)",
+        "lower_wick_condition": "LowerWick(i) < 0.05 × Range(i)",
+        "body_range_ratio": "Body(i) / Range(i) ≥ 0.90"
+      },
+      "computational_formula": "Marubozu(i) = (Body(i)>SMA(Body,5)) AND (UpperWick(i)<0.05×Range(i)) AND (LowerWick(i)<0.05×Range(i)) AND (Body(i)/Range(i)>=0.90)",
+      "algorithmic_pseudocode": "IF body>SMA(body,5) AND upper<0.05*range AND lower<0.05*range AND body/range>=0.90: RETURN +100 IF bullish, -100 IF bearish",
+      "formula_parameters": {
+        "body_range_ratio_min": 0.90,
+        "shadow_max_ratio": 0.05,
+        "body_long_period": 5
+      },
+      "when_to_apply": {
+        "scenario": "During trend or at start of a strong move, near support/resistance.",
+        "best_timeframes": ["Daily", "Weekly", "4H"]
+      },
+      "entry": {
+        "aggressive": "Enter on close of Marubozu",
+        "conservative": "Wait for next candle to continue direction"
+      },
+      "stop_loss": "Below/above the Marubozu",
+      "take_profit": "Nearest opposing level",
+      "outcome": "Strong momentum; trend continuation",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "Breakout"],
+      "reliability": "High",
+      "notes": "'Marubozu' is Japanese for 'shaved head'. Bullish = White Marubozu; Bearish = Black Marubozu."
+    },
+    {
+      "id": "CP014",
+      "name": "Bullish Engulfing",
+      "category": "bullish_reversal",
+      "candle_count": 2,
+      "kid_friendly": {
+        "story": "A little red monster tries to push the ball down. Then a BIG GREEN giant comes and swallows the little monster whole!",
+        "analogy": "A small kid getting picked up and hugged by a big friendly giant.",
+        "looks_like": "A small red candle, then a bigger green candle that completely covers it.",
+        "emoji": "🟢🐲"
+      },
+      "description": "Small red candle followed by larger green candle that completely engulfs the body of the first candle at the bottom of a downtrend.",
+      "psychology": "Sellers controlled day one. Buyers overwhelmed them day two.",
+      "mathematical_definition": {
+        "candle1_condition": "C(i-1) < O(i-1)",
+        "candle2_condition": "C(i) > O(i)",
+        "engulf_condition": "C(i) > O(i-1) AND O(i) < C(i-1)",
+        "body_size_condition": "Body(i) > Body(i-1) × 1.3",
+        "location_condition": "Close(i-2) < Close(i-6)"
+      },
+      "computational_formula": "BullishEngulfing(i) = (C(i-1)<O(i-1)) AND (C(i)>O(i)) AND (C(i)>O(i-1)) AND (O(i)<C(i-1)) AND (Body(i)>Body(i-1)×1.3) AND (Close(i-2)<Close(i-6))",
+      "algorithmic_pseudocode": "IF bearish(i-1) AND bullish(i) AND C(i)>O(i-1) AND O(i)<C(i-1) AND body(i)>body(i-1)*1.3 AND TrendContext=='Downtrend': RETURN +100",
+      "formula_parameters": {
+        "body_ratio_min": 1.3,
+        "volume_ratio_min": 1.2
+      },
+      "when_to_apply": {
+        "scenario": "Bottom of downtrend, near support, oversold RSI (<30).",
+        "best_timeframes": ["Daily", "Weekly", "4H"]
+      },
+      "entry": {
+        "aggressive": "Enter long at close of second candle",
+        "conservative": "Wait for third candle above second candle close"
+      },
+      "stop_loss": "Below L(i-1)",
+      "take_profit": "Nearest resistance or 2:1 R:R",
+      "outcome": "Bullish reversal; potential uptrend",
+      "risk": "Medium-Low",
+      "confirmation": ["Volume increase on day 2", "RSI oversold turning up", "Support level bounce"],
+      "reliability": "High (~65% success rate per University of Michigan study)",
+      "notes": "Larger engulfing candle = stronger signal."
+    },
+    {
+      "id": "CP015",
+      "name": "Bearish Engulfing",
+      "category": "bearish_reversal",
+      "candle_count": 2,
+      "kid_friendly": {
+        "story": "A little green monster tries to push the ball up. Then a BIG RED giant comes and swallows the little monster whole!",
+        "analogy": "The green kid gets covered by the red blanket completely.",
+        "looks_like": "A small green candle, then a bigger red candle that completely covers it.",
+        "emoji": "🔴🐲"
+      },
+      "description": "Small green candle followed by larger red candle that completely engulfs the body of the first candle at the top of an uptrend.",
+      "psychology": "Buyers controlled day one. Sellers overwhelmed them day two.",
+      "mathematical_definition": {
+        "candle1_condition": "C(i-1) > O(i-1)",
+        "candle2_condition": "C(i) < O(i)",
+        "engulf_condition": "C(i) < O(i-1) AND O(i) > C(i-1)",
+        "body_size_condition": "Body(i) > Body(i-1) × 1.3",
+        "location_condition": "Close(i-2) > Close(i-6)"
+      },
+      "computational_formula": "BearishEngulfing(i) = (C(i-1)>O(i-1)) AND (C(i)<O(i)) AND (C(i)<O(i-1)) AND (O(i)>C(i-1)) AND (Body(i)>Body(i-1)×1.3) AND (Close(i-2)>Close(i-6))",
+      "algorithmic_pseudocode": "IF bullish(i-1) AND bearish(i) AND C(i)<O(i-1) AND O(i)>C(i-1) AND body(i)>body(i-1)*1.3 AND TrendContext=='Uptrend': RETURN -100",
+      "formula_parameters": {
+        "body_ratio_min": 1.3,
+        "volume_ratio_min": 1.2
+      },
+      "when_to_apply": {
+        "scenario": "Top of uptrend, near resistance, overbought RSI (>70).",
+        "best_timeframes": ["Daily", "Weekly", "4H"]
+      },
+      "entry": {
+        "aggressive": "Enter short at close of second candle",
+        "conservative": "Wait for third candle below second candle close"
+      },
+      "stop_loss": "Above H(i-1)",
+      "take_profit": "Nearest support or 2:1 R:R",
+      "outcome": "Bearish reversal; potential downtrend",
+      "risk": "Medium-Low",
+      "confirmation": ["Volume increase on day 2", "RSI overbought turning down", "Resistance level"],
+      "reliability": "High",
+      "notes": "Larger engulfing candle = stronger signal."
+    },
+    {
+      "id": "CP016",
+      "name": "Piercing Line",
+      "category": "bullish_reversal",
+      "candle_count": 2,
+      "kid_friendly": {
+        "story": "A red candle pushes down. The next green candle opens even LOWER, then whoosh — it jumps up and stabs into the middle of the red candle like a sword!",
+        "analogy": "A green sword piercing through the red enemy's shield.",
+        "looks_like": "A red candle, then a green candle that starts below but closes halfway up the red one.",
+        "emoji": "⚔️"
+      },
+      "description": "Long red candle followed by green candle that opens below the low and closes above the midpoint of the first candle's body.",
+      "psychology": "Sellers pushed down at open but buyers stepped in aggressively.",
+      "mathematical_definition": {
+        "candle1_condition": "C(i-1) < O(i-1) AND Body(i-1) > SMA(Body, 5)",
+        "candle2_condition": "C(i) > O(i)",
+        "gap_condition": "O(i) < L(i-1)",
+        "pierce_condition": "C(i) > (O(i-1)+C(i-1))/2 AND C(i) < O(i-1)",
+        "location_condition": "Close(i-2) < Close(i-6)"
+      },
+      "computational_formula": "PiercingLine(i) = (C(i-1)<O(i-1)) AND (C(i)>O(i)) AND (O(i)<L(i-1)) AND (C(i)>(O(i-1)+C(i-1))/2) AND (C(i)<O(i-1)) AND (Body(i-1)>SMA(Body,5))",
+      "algorithmic_pseudocode": "IF bearish(i-1) AND bullish(i) AND O(i)<L(i-1) AND C(i)>(O(i-1)+C(i-1))/2 AND C(i)<O(i-1): RETURN +100",
+      "formula_parameters": {
+        "pierce_min_ratio": 0.5,
+        "body_long_period": 5
+      },
+      "when_to_apply": {
+        "scenario": "Bottom of downtrend, near support level.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long at close of second candle",
+        "conservative": "Wait for confirmation candle above second candle close"
+      },
+      "stop_loss": "Below L(i)",
+      "take_profit": "Nearest resistance",
+      "outcome": "Bullish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "RSI oversold", "Support level"],
+      "reliability": "Medium-High",
+      "notes": "Similar to Bullish Engulfing but second candle does not fully cover the first."
+    },
+    {
+      "id": "CP017",
+      "name": "Dark Cloud Cover",
+      "category": "bearish_reversal",
+      "candle_count": 2,
+      "kid_friendly": {
+        "story": "A green candle pushes up. The next red candle opens even HIGHER, then swoosh — it falls down and covers the middle of the green candle like a dark cloud!",
+        "analogy": "A dark rain cloud rolling in and covering the sunshine halfway.",
+        "looks_like": "A green candle, then a red candle that starts above but closes halfway down the green one.",
+        "emoji": "☁️"
+      },
+      "description": "Long green candle followed by red candle that opens above the high and closes below the midpoint of the first candle's body.",
+      "psychology": "Buyers pushed higher at open but sellers took control.",
+      "mathematical_definition": {
+        "candle1_condition": "C(i-1) > O(i-1) AND Body(i-1) > SMA(Body, 5)",
+        "candle2_condition": "C(i) < O(i)",
+        "gap_condition": "O(i) > H(i-1)",
+        "pierce_condition": "C(i) < (O(i-1)+C(i-1))/2 AND C(i) > O(i-1)",
+        "location_condition": "Close(i-2) > Close(i-6)"
+      },
+      "computational_formula": "DarkCloudCover(i) = (C(i-1)>O(i-1)) AND (C(i)<O(i)) AND (O(i)>H(i-1)) AND (C(i)<(O(i-1)+C(i-1))/2) AND (C(i)>O(i-1)) AND (Body(i-1)>SMA(Body,5))",
+      "algorithmic_pseudocode": "IF bullish(i-1) AND bearish(i) AND O(i)>H(i-1) AND C(i)<(O(i-1)+C(i-1))/2 AND C(i)>O(i-1): RETURN -100",
+      "formula_parameters": {
+        "pierce_min_ratio": 0.5,
+        "body_long_period": 5
+      },
+      "when_to_apply": {
+        "scenario": "Top of uptrend, near resistance level.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short at close of second candle",
+        "conservative": "Wait for confirmation candle below second candle close"
+      },
+      "stop_loss": "Above H(i)",
+      "take_profit": "Nearest support",
+      "outcome": "Bearish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "RSI overbought", "Resistance level"],
+      "reliability": "Medium-High",
+      "notes": "Inverse of Piercing Line."
+    },
+    {
+      "id": "CP018",
+      "name": "Bullish Harami",
+      "category": "bullish_reversal",
+      "candle_count": 2,
+      "kid_friendly": {
+        "story": "A big red monster stands tall. Then a tiny green baby appears INSIDE the monster's belly. The baby is growing — the monster is getting weak!",
+        "analogy": "A pregnant monster — something new and green is growing inside.",
+        "looks_like": "Big red candle, then small green candle completely inside its body.",
+        "emoji": "🤰"
+      },
+      "description": "Long red candle followed by smaller green candle whose body is completely contained within the first candle's body.",
+      "psychology": "Large bearish candle shows selling. Small bullish candle indicates selling momentum is weakening.",
+      "mathematical_definition": {
+        "candle1": "C(i-1) < O(i-1) AND Body(i-1) > SMA(Body, 5)",
+        "candle2": "C(i) > O(i)",
+        "containment": "O(i) > C(i-1) AND C(i) < O(i-1)",
+        "body_ratio": "Body(i) < Body(i-1) × 0.5",
+        "location": "Close(i-2) < Close(i-6)"
+      },
+      "computational_formula": "BullishHarami(i) = (C(i-1)<O(i-1)) AND (Body(i-1)>SMA(Body,5)) AND (C(i)>O(i)) AND (O(i)>C(i-1)) AND (C(i)<O(i-1)) AND (Body(i)<Body(i-1)×0.5)",
+      "algorithmic_pseudocode": "IF bearish(i-1) AND body(i-1)>SMA(body,5) AND bullish(i) AND O(i)>C(i-1) AND C(i)<O(i-1) AND body(i)<body(i-1)*0.5: RETURN +100",
+      "formula_parameters": {
+        "body_ratio_max": 0.5,
+        "body_long_period": 5
+      },
+      "when_to_apply": {
+        "scenario": "Bottom of downtrend, near support, oversold RSI.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long when price breaks above high of second candle",
+        "conservative": "Wait for bullish confirmation above first candle open"
+      },
+      "stop_loss": "Below L(i-1)",
+      "take_profit": "Nearest resistance",
+      "outcome": "Bullish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "RSI oversold", "MACD crossover"],
+      "reliability": "Medium",
+      "notes": "Smaller second candle = stronger signal. Harami Cross (doji) is stronger."
+    },
+    {
+      "id": "CP019",
+      "name": "Bearish Harami",
+      "category": "bearish_reversal",
+      "candle_count": 2,
+      "kid_friendly": {
+        "story": "A big green friendly giant stands tall. Then a tiny red baby appears inside. The baby red is growing — the giant is getting weak!",
+        "analogy": "A big green balloon with a tiny red one growing inside.",
+        "looks_like": "Big green candle, then small red candle completely inside its body.",
+        "emoji": "🤱"
+      },
+      "description": "Long green candle followed by smaller red candle whose body is completely contained within the first candle's body.",
+      "psychology": "Large bullish candle shows buying. Small bearish candle indicates buying momentum is weakening.",
+      "mathematical_definition": {
+        "candle1": "C(i-1) > O(i-1) AND Body(i-1) > SMA(Body, 5)",
+        "candle2": "C(i) < O(i)",
+        "containment": "O(i) < C(i-1) AND C(i) > O(i-1)",
+        "body_ratio": "Body(i) < Body(i-1) × 0.5",
+        "location": "Close(i-2) > Close(i-6)"
+      },
+      "computational_formula": "BearishHarami(i) = (C(i-1)>O(i-1)) AND (Body(i-1)>SMA(Body,5)) AND (C(i)<O(i)) AND (O(i)<C(i-1)) AND (C(i)>O(i-1)) AND (Body(i)<Body(i-1)×0.5)",
+      "algorithmic_pseudocode": "IF bullish(i-1) AND body(i-1)>SMA(body,5) AND bearish(i) AND O(i)<C(i-1) AND C(i)>O(i-1) AND body(i)<body(i-1)*0.5: RETURN -100",
+      "formula_parameters": {
+        "body_ratio_max": 0.5,
+        "body_long_period": 5
+      },
+      "when_to_apply": {
+        "scenario": "Top of uptrend, near resistance, overbought RSI.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short when price breaks below low of second candle",
+        "conservative": "Wait for bearish confirmation below first candle low"
+      },
+      "stop_loss": "Above H(i-1)",
+      "take_profit": "Nearest support",
+      "outcome": "Bearish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "RSI overbought", "MACD crossover"],
+      "reliability": "Medium",
+      "notes": "Harami Cross (doji) is stronger."
+    },
+    {
+      "id": "CP020",
+      "name": "Harami Cross (Bullish)",
+      "category": "bullish_reversal",
+      "candle_count": 2,
+      "kid_friendly": {
+        "story": "A big red monster stands tall. Then a tiny green PLUS SIGN appears inside. It's perfectly balanced — the monster is about to fall!",
+        "analogy": "A perfectly balanced baby inside a monster.",
+        "looks_like": "Big red candle, then a doji (plus sign) inside its body.",
+        "emoji": "➕🤰"
+      },
+      "description": "Long red candle followed by a doji completely contained within the first candle's body.",
+      "psychology": "Large bearish candle followed by complete indecision — the downtrend is losing steam.",
+      "mathematical_definition": {
+        "candle1": "C(i-1) < O(i-1) AND Body(i-1) > SMA(Body, 5)",
+        "candle2": "Body(i) ≤ 0.05 × Range(i)",
+        "containment": "O(i) > C(i-1) AND C(i) < O(i-1)"
+      },
+      "computational_formula": "BullishHaramiCross(i) = (C(i-1)<O(i-1)) AND (Body(i-1)>SMA(Body,5)) AND (Body(i)≤0.05×Range(i)) AND (O(i)>C(i-1)) AND (C(i)<O(i-1))",
+      "algorithmic_pseudocode": "IF bearish(i-1) AND body(i-1)>SMA(body,5) AND doji(i) AND O(i)>C(i-1) AND C(i)<O(i-1): RETURN +100",
+      "formula_parameters": {
+        "doji_body_max_pct": 0.05,
+        "body_long_period": 5
+      },
+      "when_to_apply": {
+        "scenario": "Bottom of downtrend, near support, oversold RSI.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long when price breaks above high of doji",
+        "conservative": "Wait for bullish confirmation candle"
+      },
+      "stop_loss": "Below L(i-1)",
+      "take_profit": "Nearest resistance",
+      "outcome": "Bullish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "RSI oversold"],
+      "reliability": "Medium-High",
+      "notes": "Stronger than regular Bullish Harami due to doji indicating extreme indecision."
+    },
+    {
+      "id": "CP021",
+      "name": "Harami Cross (Bearish)",
+      "category": "bearish_reversal",
+      "candle_count": 2,
+      "kid_friendly": {
+        "story": "A big green giant stands tall. Then a tiny red PLUS SIGN appears inside. It's perfectly balanced — the giant is about to fall!",
+        "analogy": "A perfectly balanced baby inside a giant.",
+        "looks_like": "Big green candle, then a doji (plus sign) inside its body.",
+        "emoji": "➕🤱"
+      },
+      "description": "Long green candle followed by a doji completely contained within the first candle's body.",
+      "psychology": "Large bullish candle followed by complete indecision — the uptrend is losing steam.",
+      "mathematical_definition": {
+        "candle1": "C(i-1) > O(i-1) AND Body(i-1) > SMA(Body, 5)",
+        "candle2": "Body(i) ≤ 0.05 × Range(i)",
+        "containment": "O(i) < C(i-1) AND C(i) > O(i-1)"
+      },
+      "computational_formula": "BearishHaramiCross(i) = (C(i-1)>O(i-1)) AND (Body(i-1)>SMA(Body,5)) AND (Body(i)≤0.05×Range(i)) AND (O(i)<C(i-1)) AND (C(i)>O(i-1))",
+      "algorithmic_pseudocode": "IF bullish(i-1) AND body(i-1)>SMA(body,5) AND doji(i) AND O(i)<C(i-1) AND C(i)>O(i-1): RETURN -100",
+      "formula_parameters": {
+        "doji_body_max_pct": 0.05,
+        "body_long_period": 5
+      },
+      "when_to_apply": {
+        "scenario": "Top of uptrend, near resistance, overbought RSI.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short when price breaks below low of doji",
+        "conservative": "Wait for bearish confirmation candle"
+      },
+      "stop_loss": "Above H(i-1)",
+      "take_profit": "Nearest support",
+      "outcome": "Bearish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "RSI overbought"],
+      "reliability": "Medium-High",
+      "notes": "Stronger than regular Bearish Harami."
+    },
+    {
+      "id": "CP022",
+      "name": "Morning Star",
+      "category": "bullish_reversal",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "It's dark and gloomy. Then a tiny star appears at the bottom. Then the SUN rises! Morning is here — time to buy!",
+        "analogy": "Night → tiny star → sunrise.",
+        "looks_like": "Red candle, tiny candle below, then big green candle going up.",
+        "emoji": "🌅"
+      },
+      "description": "Long bearish candle, small-bodied candle gapping down, then strong bullish candle closing near first candle's open.",
+      "psychology": "First: strong selling. Second: indecision. Third: buyers take control.",
+      "mathematical_definition": {
+        "candle1": "C(i-2) < O(i-2) AND Body(i-2) > SMA(Body, 5)",
+        "candle2": "Body(i-1) ≤ 0.3 × Range(i-1)",
+        "gap": "max(O(i-1), C(i-1)) < C(i-2)",
+        "candle3": "C(i) > O(i) AND C(i) > (O(i-2)+C(i-2))/2"
+      },
+      "computational_formula": "MorningStar(i) = (C(i-2)<O(i-2)) AND (Body(i-2)>SMA(Body,5)) AND (Body(i-1)≤0.3×Range(i-1)) AND (max(O(i-1),C(i-1))<C(i-2)) AND (C(i)>O(i)) AND (C(i)>(O(i-2)+C(i-2))/2)",
+      "algorithmic_pseudocode": "IF bearish(i-2) AND body(i-2)>SMA(body,5) AND body(i-1)<=0.3*range(i-1) AND max(O(i-1),C(i-1))<C(i-2) AND bullish(i) AND C(i)>(O(i-2)+C(i-2))/2: RETURN +100",
+      "formula_parameters": {
+        "small_body_max_pct": 0.3,
+        "close_recovery_min_ratio": 0.5
+      },
+      "when_to_apply": {
+        "scenario": "Bottom of downtrend after strong selling; near support.",
+        "best_timeframes": ["Daily", "Weekly", "4H"]
+      },
+      "entry": {
+        "aggressive": "Enter long at close of third candle",
+        "conservative": "Enter long on open of next session"
+      },
+      "stop_loss": "Below L(i-2) or L(i-1)",
+      "take_profit": "Nearest resistance or 2:1 R:R",
+      "outcome": "Strong bullish reversal",
+      "risk": "Low-Medium",
+      "confirmation": ["Volume increase on day 3", "RSI oversold", "Support level"],
+      "reliability": "High",
+      "notes": "Ideal has gaps between all three candles."
+    },
+    {
+      "id": "CP023",
+      "name": "Evening Star",
+      "category": "bearish_reversal",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "The sun is shining. Then a tiny star appears at the top. Then NIGHT falls! Time to sell.",
+        "analogy": "Sunshine → star at dusk → night.",
+        "looks_like": "Green candle, tiny candle above, then big red candle going down.",
+        "emoji": "🌃"
+      },
+      "description": "Long bullish candle, small-bodied candle gapping up, then strong bearish candle closing well into first candle's body.",
+      "psychology": "First: strong buying. Second: indecision. Third: sellers take control.",
+      "mathematical_definition": {
+        "candle1": "C(i-2) > O(i-2) AND Body(i-2) > SMA(Body, 5)",
+        "candle2": "Body(i-1) ≤ 0.3 × Range(i-1)",
+        "gap": "min(O(i-1), C(i-1)) > C(i-2)",
+        "candle3": "C(i) < O(i) AND C(i) < (O(i-2)+C(i-2))/2"
+      },
+      "computational_formula": "EveningStar(i) = (C(i-2)>O(i-2)) AND (Body(i-2)>SMA(Body,5)) AND (Body(i-1)≤0.3×Range(i-1)) AND (min(O(i-1),C(i-1))>C(i-2)) AND (C(i)<O(i)) AND (C(i)<(O(i-2)+C(i-2))/2)",
+      "algorithmic_pseudocode": "IF bullish(i-2) AND body(i-2)>SMA(body,5) AND body(i-1)<=0.3*range(i-1) AND min(O(i-1),C(i-1))>C(i-2) AND bearish(i) AND C(i)<(O(i-2)+C(i-2))/2: RETURN -100",
+      "formula_parameters": {
+        "small_body_max_pct": 0.3,
+        "close_recovery_min_ratio": 0.5
+      },
+      "when_to_apply": {
+        "scenario": "Top of uptrend after strong buying; near resistance.",
+        "best_timeframes": ["Daily", "Weekly", "4H"]
+      },
+      "entry": {
+        "aggressive": "Enter short at close of third candle",
+        "conservative": "Enter short on open of next session"
+      },
+      "stop_loss": "Above H(i-2) or H(i-1)",
+      "take_profit": "Nearest support or 2:1 R:R",
+      "outcome": "Strong bearish reversal",
+      "risk": "Low-Medium",
+      "confirmation": ["Volume increase on day 3", "RSI overbought", "Resistance level"],
+      "reliability": "High",
+      "notes": "Inverse of Morning Star."
+    },
+    {
+      "id": "CP024",
+      "name": "Morning Doji Star",
+      "category": "bullish_reversal",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "Just like Morning Star but the tiny star in the middle is EXTRA tiny and super confused — it's a doji!",
+        "analogy": "Same as Morning Star but the star is extra balanced.",
+        "looks_like": "Red candle, doji below, then big green candle going up.",
+        "emoji": "🌟🌅"
+      },
+      "description": "Morning Star variant where second candle is a doji instead of small-bodied candle.",
+      "psychology": "Doji in the middle indicates extreme indecision and a potential turning point.",
+      "mathematical_definition": {
+        "candle1": "C(i-2) < O(i-2) AND Body(i-2) > SMA(Body, 5)",
+        "candle2": "Body(i-1) ≤ 0.05 × Range(i-1)",
+        "gap_down": "max(O(i-1), C(i-1)) < C(i-2)",
+        "candle3": "C(i) > O(i) AND C(i) > (O(i-2)+C(i-2))/2"
+      },
+      "computational_formula": "MorningDojiStar(i) = (C(i-2)<O(i-2)) AND (Body(i-2)>SMA(Body,5)) AND (Body(i-1)≤0.05×Range(i-1)) AND (max(O(i-1),C(i-1))<C(i-2)) AND (C(i)>O(i)) AND (C(i)>(O(i-2)+C(i-2))/2)",
+      "algorithmic_pseudocode": "IF bearish(i-2) AND body(i-2)>SMA(body,5) AND doji(i-1) AND max(O(i-1),C(i-1))<C(i-2) AND bullish(i) AND C(i)>(O(i-2)+C(i-2))/2: RETURN +100",
+      "formula_parameters": {
+        "doji_body_max_pct": 0.05
+      },
+      "when_to_apply": {
+        "scenario": "Bottom of downtrend, near support level.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long at close of third candle",
+        "conservative": "Enter long on open of next session"
+      },
+      "stop_loss": "Below L(i-1)",
+      "take_profit": "Nearest resistance",
+      "outcome": "Strong bullish reversal",
+      "risk": "Low-Medium",
+      "confirmation": ["Volume increase", "RSI oversold", "Support level"],
+      "reliability": "High",
+      "notes": "More reliable than standard Morning Star."
+    },
+    {
+      "id": "CP025",
+      "name": "Evening Doji Star",
+      "category": "bearish_reversal",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "Just like Evening Star but the tiny star at the top is EXTRA tiny and super confused — it's a doji!",
+        "analogy": "Same as Evening Star but the star is extra balanced.",
+        "looks_like": "Green candle, doji above, then big red candle going down.",
+        "emoji": "🌟🌃"
+      },
+      "description": "Evening Star variant where second candle is a doji instead of small-bodied candle.",
+      "psychology": "Doji in the middle indicates extreme indecision and a potential turning point.",
+      "mathematical_definition": {
+        "candle1": "C(i-2) > O(i-2) AND Body(i-2) > SMA(Body, 5)",
+        "candle2": "Body(i-1) ≤ 0.05 × Range(i-1)",
+        "gap_up": "min(O(i-1), C(i-1)) > C(i-2)",
+        "candle3": "C(i) < O(i) AND C(i) < (O(i-2)+C(i-2))/2"
+      },
+      "computational_formula": "EveningDojiStar(i) = (C(i-2)>O(i-2)) AND (Body(i-2)>SMA(Body,5)) AND (Body(i-1)≤0.05×Range(i-1)) AND (min(O(i-1),C(i-1))>C(i-2)) AND (C(i)<O(i)) AND (C(i)<(O(i-2)+C(i-2))/2)",
+      "algorithmic_pseudocode": "IF bullish(i-2) AND body(i-2)>SMA(body,5) AND doji(i-1) AND min(O(i-1),C(i-1))>C(i-2) AND bearish(i) AND C(i)<(O(i-2)+C(i-2))/2: RETURN -100",
+      "formula_parameters": {
+        "doji_body_max_pct": 0.05
+      },
+      "when_to_apply": {
+        "scenario": "Top of uptrend, near resistance level.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short at close of third candle",
+        "conservative": "Enter short on open of next session"
+      },
+      "stop_loss": "Above H(i-1)",
+      "take_profit": "Nearest support",
+      "outcome": "Strong bearish reversal",
+      "risk": "Low-Medium",
+      "confirmation": ["Volume increase", "RSI overbought", "Resistance level"],
+      "reliability": "High",
+      "notes": "More reliable than standard Evening Star."
+    },
+    {
+      "id": "CP026",
+      "name": "Three White Soldiers",
+      "category": "bullish_reversal",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "Three friendly green soldiers march up the hill together — each one climbing higher than the last!",
+        "analogy": "Three green balloons floating up, up, up.",
+        "looks_like": "Three green candles in a row, each higher than the previous.",
+        "emoji": "🟢🟢🟢"
+      },
+      "description": "Three consecutive long green candles, each opening within previous body and closing progressively higher, with small upper shadows.",
+      "psychology": "Buyers in complete control for three sessions.",
+      "mathematical_definition": {
+        "color_conditions": "C(i)>O(i) AND C(i-1)>O(i-1) AND C(i-2)>O(i-2)",
+        "close_condition": "C(i)>C(i-1) AND C(i-1)>C(i-2)",
+        "open_within_body": "O(i)>O(i-1) AND O(i)<C(i-1) AND O(i-1)>O(i-2) AND O(i-1)<C(i-2)",
+        "shadow_condition": "UpperWick(k) < 0.33 × Body(k) for k ∈ {i, i-1, i-2}"
+      },
+      "computational_formula": "ThreeWhiteSoldiers(i) = bullish(i) AND bullish(i-1) AND bullish(i-2) AND C(i)>C(i-1) AND C(i-1)>C(i-2) AND O(i)>O(i-1) AND O(i)<C(i-1) AND O(i-1)>O(i-2) AND O(i-1)<C(i-2) AND UpperWick(k)<0.33×Body(k) ∀k∈{i,i-1,i-2}",
+      "algorithmic_pseudocode": "IF bullish(i) AND bullish(i-1) AND bullish(i-2) AND rising_closes AND opens_within_prior_bodies AND small_upper_shadows: RETURN +100",
+      "formula_parameters": {
+        "shadow_max_ratio": 0.33,
+        "body_long_period": 5
+      },
+      "when_to_apply": {
+        "scenario": "After downtrend or consolidation, near support.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long at close of third candle",
+        "conservative": "Enter long on open of next session"
+      },
+      "stop_loss": "Below L(i-2)",
+      "take_profit": "Nearest resistance",
+      "outcome": "Strong bullish reversal",
+      "risk": "Low-Medium",
+      "confirmation": ["Volume increase across all three", "RSI rising", "Breaking resistance"],
+      "reliability": "High",
+      "notes": "Also known as 'Three Advancing White Soldiers'."
+    },
+    {
+      "id": "CP027",
+      "name": "Three Black Crows",
+      "category": "bearish_reversal",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "Three angry black crows fly down the hill together — each one swooping lower than the last!",
+        "analogy": "Three black balloons sinking down together.",
+        "looks_like": "Three red candles in a row, each lower than the previous.",
+        "emoji": "🐦⬛🐦⬛🐦⬛"
+      },
+      "description": "Three consecutive long red candles, each opening within previous body and closing progressively lower, with small lower shadows.",
+      "psychology": "Sellers in complete control for three sessions.",
+      "mathematical_definition": {
+        "color_conditions": "C(i)<O(i) AND C(i-1)<O(i-1) AND C(i-2)<O(i-2)",
+        "close_condition": "C(i)<C(i-1) AND C(i-1)<C(i-2)",
+        "open_within_body": "O(i)<O(i-1) AND O(i)>C(i-1) AND O(i-1)<O(i-2) AND O(i-1)>C(i-2)",
+        "shadow_condition": "LowerWick(k) < 0.33 × Body(k) for k ∈ {i, i-1, i-2}"
+      },
+      "computational_formula": "ThreeBlackCrows(i) = bearish(i) AND bearish(i-1) AND bearish(i-2) AND C(i)<C(i-1) AND C(i-1)<C(i-2) AND O(i)<O(i-1) AND O(i)>C(i-1) AND O(i-1)<O(i-2) AND O(i-1)>C(i-2) AND LowerWick(k)<0.33×Body(k) ∀k∈{i,i-1,i-2}",
+      "algorithmic_pseudocode": "IF bearish(i) AND bearish(i-1) AND bearish(i-2) AND falling_closes AND opens_within_prior_bodies AND small_lower_shadows: RETURN -100",
+      "formula_parameters": {
+        "shadow_max_ratio": 0.33,
+        "body_long_period": 5
+      },
+      "when_to_apply": {
+        "scenario": "After an uptrend or consolidation, near resistance.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short at close of third candle",
+        "conservative": "Enter short on open of next session"
+      },
+      "stop_loss": "Above H(i-2)",
+      "take_profit": "Nearest support",
+      "outcome": "Strong bearish reversal",
+      "risk": "Low-Medium",
+      "confirmation": ["Volume increase across all three", "RSI falling", "Breaking support"],
+      "reliability": "High",
+      "notes": "Opposite of Three White Soldiers."
+    },
+    {
+      "id": "CP028",
+      "name": "Three Inside Up",
+      "category": "bullish_reversal",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "Big red monster. Tiny green baby inside. Then the baby GROWS UP into a big green hero who jumps ABOVE the monster!",
+        "analogy": "A baby green bird growing and flying higher.",
+        "looks_like": "Bullish Harami followed by a big green candle.",
+        "emoji": "🐣➡️🦅"
+      },
+      "description": "Long bearish candle, small bullish candle contained within first body, then long bullish confirmation candle closing above first candle high.",
+      "psychology": "First: selling. Second: indecision. Third: buyers confirm control.",
+      "mathematical_definition": {
+        "candle1": "C(i-2) < O(i-2) AND Body(i-2) > SMA(Body, 5)",
+        "candle2": "C(i-1) > O(i-1) AND O(i-1) > C(i-2) AND C(i-1) < O(i-2)",
+        "candle3": "C(i) > O(i) AND C(i) > H(i-2)"
+      },
+      "computational_formula": "ThreeInsideUp(i) = (C(i-2)<O(i-2)) AND (Body(i-2)>SMA(Body,5)) AND (C(i-1)>O(i-1)) AND (O(i-1)>C(i-2)) AND (C(i-1)<O(i-2)) AND (C(i)>O(i)) AND (C(i)>H(i-2))",
+      "algorithmic_pseudocode": "IF bearish(i-2) AND bullish(i-1) AND O(i-1)>C(i-2) AND C(i-1)<O(i-2) AND bullish(i) AND C(i)>H(i-2): RETURN +100",
+      "formula_parameters": { "body_long_period": 5 },
+      "when_to_apply": {
+        "scenario": "Bottom of downtrend, near support.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long at close of third candle",
+        "conservative": "Enter long on open of next session"
+      },
+      "stop_loss": "Below L(i-2)",
+      "take_profit": "Nearest resistance",
+      "outcome": "Bullish reversal",
+      "risk": "Low-Medium",
+      "confirmation": ["Volume increase", "RSI rising", "Support bounce"],
+      "reliability": "Medium-High",
+      "notes": "Bullish Harami + bullish confirmation candle."
+    },
+    {
+      "id": "CP029",
+      "name": "Three Inside Down",
+      "category": "bearish_reversal",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "Big green giant. Tiny red baby inside. Then the baby GROWS into a big red monster that jumps BELOW the giant!",
+        "analogy": "A baby red dragon growing up to be a huge dragon.",
+        "looks_like": "Bearish Harami followed by a big red candle.",
+        "emoji": "🥚➡️🐉"
+      },
+      "description": "Long bullish candle, small bearish candle contained within first body, then long bearish confirmation candle closing below first candle low.",
+      "psychology": "First: buying. Second: indecision. Third: sellers confirm control.",
+      "mathematical_definition": {
+        "candle1": "C(i-2) > O(i-2) AND Body(i-2) > SMA(Body, 5)",
+        "candle2": "C(i-1) < O(i-1) AND O(i-1) < C(i-2) AND C(i-1) > O(i-2)",
+        "candle3": "C(i) < O(i) AND C(i) < L(i-2)"
+      },
+      "computational_formula": "ThreeInsideDown(i) = (C(i-2)>O(i-2)) AND (Body(i-2)>SMA(Body,5)) AND (C(i-1)<O(i-1)) AND (O(i-1)<C(i-2)) AND (C(i-1)>O(i-2)) AND (C(i)<O(i)) AND (C(i)<L(i-2))",
+      "algorithmic_pseudocode": "IF bullish(i-2) AND bearish(i-1) AND O(i-1)<C(i-2) AND C(i-1)>O(i-2) AND bearish(i) AND C(i)<L(i-2): RETURN -100",
+      "formula_parameters": { "body_long_period": 5 },
+      "when_to_apply": {
+        "scenario": "Top of uptrend, near resistance.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short at close of third candle",
+        "conservative": "Enter short on open of next session"
+      },
+      "stop_loss": "Above H(i-2)",
+      "take_profit": "Nearest support",
+      "outcome": "Bearish reversal",
+      "risk": "Low-Medium",
+      "confirmation": ["Volume increase", "RSI falling", "Resistance rejection"],
+      "reliability": "Medium-High",
+      "notes": "Bearish Harami + bearish confirmation candle."
+    },
+    {
+      "id": "CP030",
+      "name": "Three Outside Up",
+      "category": "bullish_reversal",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "A little red candle, then a BIG GREEN giant swallows it whole! Then another green hero jumps even higher!",
+        "analogy": "Bullish Engulfing + a green confirmation candle.",
+        "looks_like": "Bullish Engulfing followed by a green candle.",
+        "emoji": "🟢🟢🟢"
+      },
+      "description": "Bullish Engulfing pattern followed by a third bullish candle that closes above the second candle's high.",
+      "psychology": "Strong buying confirmed by a third consecutive bullish candle.",
+      "mathematical_definition": {
+        "candle1": "C(i-2) < O(i-2)",
+        "candle2": "C(i-1) > O(i-1) AND C(i-1) > O(i-2) AND O(i-1) < C(i-2)",
+        "candle3": "C(i) > O(i) AND C(i) > H(i-1)"
+      },
+      "computational_formula": "ThreeOutsideUp(i) = (C(i-2)<O(i-2)) AND (C(i-1)>O(i-1)) AND (C(i-1)>O(i-2)) AND (O(i-1)<C(i-2)) AND (C(i)>O(i)) AND (C(i)>H(i-1))",
+      "algorithmic_pseudocode": "IF bearish(i-2) AND bullish(i-1) AND C(i-1)>O(i-2) AND O(i-1)<C(i-2) AND bullish(i) AND C(i)>H(i-1): RETURN +100",
+      "formula_parameters": {},
+      "when_to_apply": {
+        "scenario": "Bottom of downtrend, near support.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long at close of third candle",
+        "conservative": "Enter long on open of next session"
+      },
+      "stop_loss": "Below L(i-2)",
+      "take_profit": "Nearest resistance",
+      "outcome": "Bullish reversal",
+      "risk": "Low-Medium",
+      "confirmation": ["Volume increase", "RSI rising"],
+      "reliability": "High",
+      "notes": "Bullish Engulfing + confirmation candle."
+    },
+    {
+      "id": "CP031",
+      "name": "Three Outside Down",
+      "category": "bearish_reversal",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "A little green candle, then a BIG RED monster swallows it whole! Then another red villain jumps even lower!",
+        "analogy": "Bearish Engulfing + a red confirmation candle.",
+        "looks_like": "Bearish Engulfing followed by a red candle.",
+        "emoji": "🔴🔴🔴"
+      },
+      "description": "Bearish Engulfing pattern followed by a third bearish candle that closes below the second candle's low.",
+      "psychology": "Strong selling confirmed by a third consecutive bearish candle.",
+      "mathematical_definition": {
+        "candle1": "C(i-2) > O(i-2)",
+        "candle2": "C(i-1) < O(i-1) AND C(i-1) < O(i-2) AND O(i-1) > C(i-2)",
+        "candle3": "C(i) < O(i) AND C(i) < L(i-1)"
+      },
+      "computational_formula": "ThreeOutsideDown(i) = (C(i-2)>O(i-2)) AND (C(i-1)<O(i-1)) AND (C(i-1)<O(i-2)) AND (O(i-1)>C(i-2)) AND (C(i)<O(i)) AND (C(i)<L(i-1))",
+      "algorithmic_pseudocode": "IF bullish(i-2) AND bearish(i-1) AND C(i-1)<O(i-2) AND O(i-1)>C(i-2) AND bearish(i) AND C(i)<L(i-1): RETURN -100",
+      "formula_parameters": {},
+      "when_to_apply": {
+        "scenario": "Top of uptrend, near resistance.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short at close of third candle",
+        "conservative": "Enter short on open of next session"
+      },
+      "stop_loss": "Above H(i-2)",
+      "take_profit": "Nearest support",
+      "outcome": "Bearish reversal",
+      "risk": "Low-Medium",
+      "confirmation": ["Volume increase", "RSI falling"],
+      "reliability": "High",
+      "notes": "Bearish Engulfing + confirmation candle."
+    },
+    {
+      "id": "CP032",
+      "name": "Rising Three Methods",
+      "category": "bullish_continuation",
+      "candle_count": 5,
+      "kid_friendly": {
+        "story": "A big green rocket launches. Then the astronauts take a little break for 3 days. Then — WHOOSH — the rocket takes off again!",
+        "analogy": "A car on a long drive stops for gas, then continues.",
+        "looks_like": "Big green candle, 3 small candles wiggling sideways, big green candle again.",
+        "emoji": "🚀⛽🚀"
+      },
+      "description": "Long bullish candle, three small bearish candles contained within first candle's range, then long bullish candle closing above first candle high.",
+      "psychology": "First confirms uptrend. Three small candles are a pause. Fifth confirms buyers are still in control.",
+      "mathematical_definition": {
+        "candle1": "C(i-4) > O(i-4) AND Body(i-4) > SMA(Body, 5)",
+        "middle_containment": "L(k) ≥ L(i-4) AND H(k) ≤ H(i-4) for k ∈ {i-1, i-2, i-3}",
+        "candle5": "C(i) > O(i) AND C(i) > H(i-4)"
+      },
+      "computational_formula": "RisingThreeMethods(i) = (C(i-4)>O(i-4)) AND (Body(i-4)>SMA(Body,5)) AND (L(k)≥L(i-4)) AND (H(k)≤H(i-4)) ∀k AND (C(i)>O(i)) AND (C(i)>H(i-4))",
+      "algorithmic_pseudocode": "IF bullish(i-4) AND body(i-4)>SMA(body,5) AND all_middle_candles_contained_in_candle1 AND bullish(i) AND C(i)>H(i-4): RETURN +100",
+      "formula_parameters": {
+        "body_long_period": 5
+      },
+      "when_to_apply": {
+        "scenario": "During established uptrend, after temporary pullback.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long during formation of fifth candle",
+        "conservative": "Enter long after fifth candle closes above first candle high"
+      },
+      "stop_loss": "Below L(i-4) or lowest consolidation point",
+      "take_profit": "Next major resistance",
+      "outcome": "Uptrend continuation",
+      "risk": "Low-Medium",
+      "confirmation": ["Volume increase on fifth candle", "ADX > 25", "MA support"],
+      "reliability": "High",
+      "notes": "Also known as 'Rising Three Methods'."
+    },
+    {
+      "id": "CP033",
+      "name": "Falling Three Methods",
+      "category": "bearish_continuation",
+      "candle_count": 5,
+      "kid_friendly": {
+        "story": "A red elevator goes down fast. Then it stops for 3 days. Then — ZOOM — it goes down again!",
+        "analogy": "A slide at the playground — pause at the top, then down you go again.",
+        "looks_like": "Big red candle, 3 small candles wiggling sideways, big red candle again.",
+        "emoji": "🛗⬇️"
+      },
+      "description": "Long bearish candle, three small bullish candles contained within first candle's range, then long bearish candle closing below first candle low.",
+      "psychology": "First confirms downtrend. Three small candles are a pause. Fifth confirms sellers still in control.",
+      "mathematical_definition": {
+        "candle1": "C(i-4) < O(i-4) AND Body(i-4) > SMA(Body, 5)",
+        "middle_containment": "L(k) ≥ L(i-4) AND H(k) ≤ H(i-4) for k ∈ {i-1, i-2, i-3}",
+        "candle5": "C(i) < O(i) AND C(i) < L(i-4)"
+      },
+      "computational_formula": "FallingThreeMethods(i) = (C(i-4)<O(i-4)) AND (Body(i-4)>SMA(Body,5)) AND (L(k)≥L(i-4)) AND (H(k)≤H(i-4)) ∀k AND (C(i)<O(i)) AND (C(i)<L(i-4))",
+      "algorithmic_pseudocode": "IF bearish(i-4) AND body(i-4)>SMA(body,5) AND all_middle_candles_contained_in_candle1 AND bearish(i) AND C(i)<L(i-4): RETURN -100",
+      "formula_parameters": {
+        "body_long_period": 5
+      },
+      "when_to_apply": {
+        "scenario": "During established downtrend, after temporary pullback.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short during formation of fifth candle",
+        "conservative": "Enter short after fifth candle closes below first candle low"
+      },
+      "stop_loss": "Above H(i-4) or highest consolidation point",
+      "take_profit": "Next major support",
+      "outcome": "Downtrend continuation",
+      "risk": "Low-Medium",
+      "confirmation": ["Volume increase on fifth candle", "ADX > 25", "MA resistance"],
+      "reliability": "High",
+      "notes": "Bearish counterpart of Rising Three Methods."
+    },
+    {
+      "id": "CP034",
+      "name": "Mat Hold",
+      "category": "bullish_continuation",
+      "candle_count": 5,
+      "kid_friendly": {
+        "story": "A green rocket launches. The astronauts hover for 3 days but DON'T drop below their launch pad. Then they blast off again!",
+        "analogy": "A bouncing ball that doesn't lose altitude.",
+        "looks_like": "Big green candle, 3 small candles that stay above the first candle's low, then big green candle.",
+        "emoji": "🛰️🚀"
+      },
+      "description": "Long bullish candle, three small candles staying above the first candle low, then long bullish candle closing above first candle high.",
+      "psychology": "Temporary pullback within an uptrend. Buyers are defending the first candle's low.",
+      "mathematical_definition": {
+        "candle1": "C(i-4) > O(i-4) AND Body(i-4) > SMA(Body, 5)",
+        "middle_floor": "L(k) ≥ L(i-4) for k ∈ {i-1, i-2, i-3}",
+        "candle5": "C(i) > O(i) AND C(i) > H(i-4)"
+      },
+      "computational_formula": "MatHold(i) = (C(i-4)>O(i-4)) AND (Body(i-4)>SMA(Body,5)) AND (L(k)≥L(i-4)) ∀k AND (C(i)>O(i)) AND (C(i)>H(i-4))",
+      "algorithmic_pseudocode": "IF bullish(i-4) AND body(i-4)>SMA(body,5) AND all_middle_lows_above_candle1_low AND bullish(i) AND C(i)>H(i-4): RETURN +100",
+      "formula_parameters": { "body_long_period": 5 },
+      "when_to_apply": {
+        "scenario": "During bullish trend, after temporary consolidation with strong support.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long when pattern completes",
+        "conservative": "Enter long after fifth candle closes above first candle high"
+      },
+      "stop_loss": "Below lowest consolidation point",
+      "take_profit": "Next major resistance",
+      "outcome": "Uptrend continuation",
+      "risk": "Low-Medium",
+      "confirmation": ["Volume analysis", "Support holding", "MA support"],
+      "reliability": "Medium-High",
+      "notes": "Similar to Rising Three Methods but middle candles stay above first candle low."
+    },
+    {
+      "id": "CP035",
+      "name": "Bullish Marubozu",
+      "category": "bullish_continuation",
+      "candle_count": 1,
+      "kid_friendly": {
+        "story": "A green arrow shoots STRAIGHT UP with no wiggles at all!",
+        "analogy": "A green laser beam — no bends, just straight.",
+        "looks_like": "A long green rectangle with no wicks at all.",
+        "emoji": "🟩"
+      },
+      "description": "Long green body with virtually no upper or lower wicks; open equals low and close equals high.",
+      "psychology": "Buyers dominated the entire session with zero selling pressure.",
+      "mathematical_definition": {
+        "body_condition": "C(i) > O(i) AND Body(i) > SMA(Body, 5)",
+        "upper_wick": "UpperWick(i) < 0.05 × Range(i)",
+        "lower_wick": "LowerWick(i) < 0.05 × Range(i)",
+        "body_range_ratio": "Body(i) / Range(i) ≥ 0.90"
+      },
+      "computational_formula": "BullishMarubozu(i) = (C(i)>O(i)) AND (Body(i)>SMA(Body,5)) AND (UpperWick(i)<0.05×Range(i)) AND (LowerWick(i)<0.05×Range(i)) AND (Body(i)/Range(i)>=0.90)",
+      "algorithmic_pseudocode": "IF C(i)>O(i) AND body>SMA(body,5) AND upper<0.05*range AND lower<0.05*range AND body/range>=0.90: RETURN +100",
+      "formula_parameters": {
+        "body_range_ratio_min": 0.90,
+        "shadow_max_ratio": 0.05,
+        "body_long_period": 5
+      },
+      "when_to_apply": {
+        "scenario": "During uptrend or at start of a bullish move, near support.",
+        "best_timeframes": ["Daily", "Weekly", "4H"]
+      },
+      "entry": {
+        "aggressive": "Enter long at close of Marubozu candle",
+        "conservative": "Wait for next candle to open higher and confirm"
+      },
+      "stop_loss": "Below L(i)",
+      "take_profit": "Nearest resistance",
+      "outcome": "Strong bullish momentum; trend continuation",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "Breakout above resistance", "RSI rising"],
+      "reliability": "High",
+      "notes": "Also called 'White Marubozu'."
+    },
+    {
+      "id": "CP036",
+      "name": "Bearish Marubozu",
+      "category": "bearish_continuation",
+      "candle_count": 1,
+      "kid_friendly": {
+        "story": "A red arrow shoots STRAIGHT DOWN with no wiggles at all!",
+        "analogy": "A red waterfall — no bends, just straight down.",
+        "looks_like": "A long red rectangle with no wicks.",
+        "emoji": "🟥"
+      },
+      "description": "Long red body with virtually no upper or lower wicks; open equals high and close equals low.",
+      "psychology": "Sellers dominated the entire session with zero buying support.",
+      "mathematical_definition": {
+        "body_condition": "C(i) < O(i) AND Body(i) > SMA(Body, 5)",
+        "upper_wick": "UpperWick(i) < 0.05 × Range(i)",
+        "lower_wick": "LowerWick(i) < 0.05 × Range(i)",
+        "body_range_ratio": "Body(i) / Range(i) ≥ 0.90"
+      },
+      "computational_formula": "BearishMarubozu(i) = (C(i)<O(i)) AND (Body(i)>SMA(Body,5)) AND (UpperWick(i)<0.05×Range(i)) AND (LowerWick(i)<0.05×Range(i)) AND (Body(i)/Range(i)>=0.90)",
+      "algorithmic_pseudocode": "IF C(i)<O(i) AND body>SMA(body,5) AND upper<0.05*range AND lower<0.05*range AND body/range>=0.90: RETURN -100",
+      "formula_parameters": {
+        "body_range_ratio_min": 0.90,
+        "shadow_max_ratio": 0.05,
+        "body_long_period": 5
+      },
+      "when_to_apply": {
+        "scenario": "During downtrend or at start of a bearish move, near resistance.",
+        "best_timeframes": ["Daily", "Weekly", "4H"]
+      },
+      "entry": {
+        "aggressive": "Enter short at close of Marubozu candle",
+        "conservative": "Wait for next candle to open lower and confirm"
+      },
+      "stop_loss": "Above H(i)",
+      "take_profit": "Nearest support",
+      "outcome": "Strong bearish momentum; trend continuation",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "Breakdown below support", "RSI falling"],
+      "reliability": "High",
+      "notes": "Also called 'Black Marubozu'."
+    },
+    {
+      "id": "CP037",
+      "name": "Bullish Belt Hold",
+      "category": "bullish_reversal",
+      "candle_count": 1,
+      "kid_friendly": {
+        "story": "A green candle opens at the very BOTTOM and then climbs up all day without ever looking back!",
+        "analogy": "A rocket launching from the ground floor.",
+        "looks_like": "A long green candle with no lower wick.",
+        "emoji": "🟢⬆️"
+      },
+      "description": "Long white candle with no/very short lower shadow, opening below the previous candle's low.",
+      "psychology": "Buyers took control from the open and never looked back.",
+      "mathematical_definition": {
+        "body_condition": "C(i) > O(i) AND Body(i) > SMA(Body, 5)",
+        "lower_wick": "LowerWick(i) < 0.05 × Range(i)",
+        "location": "O(i) < L(i-1)"
+      },
+      "computational_formula": "BullishBeltHold(i) = (C(i)>O(i)) AND (Body(i)>SMA(Body,5)) AND (LowerWick(i)<0.05×Range(i)) AND (O(i)<L(i-1))",
+      "algorithmic_pseudocode": "IF bullish(i) AND body>SMA(body,5) AND lower<0.05*range AND O(i)<L(i-1): RETURN +100",
+      "formula_parameters": {
+        "body_long_period": 5,
+        "shadow_max_ratio": 0.05
+      },
+      "when_to_apply": {
+        "scenario": "After a downtrend, near support.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long at close of Belt Hold candle",
+        "conservative": "Wait for next candle to confirm"
+      },
+      "stop_loss": "Below L(i)",
+      "take_profit": "Nearest resistance",
+      "outcome": "Bullish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "RSI oversold"],
+      "reliability": "High (71% reversal rate per Bulkowski, ranked 11th of 103 patterns)",
+      "notes": "Also known as 'Bullish Belt Hold Line'."
+    },
+    {
+      "id": "CP038",
+      "name": "Bearish Belt Hold",
+      "category": "bearish_reversal",
+      "candle_count": 1,
+      "kid_friendly": {
+        "story": "A red candle opens at the very TOP and then falls all day without ever looking back!",
+        "analogy": "A rock dropping from a cliff.",
+        "looks_like": "A long red candle with no upper wick.",
+        "emoji": "🔴⬇️"
+      },
+      "description": "Long black candle with no/very short upper shadow, opening above the previous candle's high.",
+      "psychology": "Sellers took control from the open and never looked back.",
+      "mathematical_definition": {
+        "body_condition": "C(i) < O(i) AND Body(i) > SMA(Body, 5)",
+        "upper_wick": "UpperWick(i) < 0.05 × Range(i)",
+        "location": "O(i) > H(i-1)"
+      },
+      "computational_formula": "BearishBeltHold(i) = (C(i)<O(i)) AND (Body(i)>SMA(Body,5)) AND (UpperWick(i)<0.05×Range(i)) AND (O(i)>H(i-1))",
+      "algorithmic_pseudocode": "IF bearish(i) AND body>SMA(body,5) AND upper<0.05*range AND O(i)>H(i-1): RETURN -100",
+      "formula_parameters": {
+        "body_long_period": 5,
+        "shadow_max_ratio": 0.05
+      },
+      "when_to_apply": {
+        "scenario": "After an uptrend, near resistance.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short at close of Belt Hold candle",
+        "conservative": "Wait for next candle to confirm"
+      },
+      "stop_loss": "Above H(i)",
+      "take_profit": "Nearest support",
+      "outcome": "Bearish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "RSI overbought"],
+      "reliability": "High (68% reversal rate per Bulkowski)",
+      "notes": "Also known as 'Bearish Belt Hold Line'."
+    },
+    {
+      "id": "CP039",
+      "name": "Bullish Kicker",
+      "category": "bullish_reversal",
+      "candle_count": 2,
+      "kid_friendly": {
+        "story": "A red candle is going down. Then — BAM! — a green candle GAPS UP so hard it kicks the red candle away!",
+        "analogy": "A soccer player kicking the ball in the opposite direction.",
+        "looks_like": "A red candle, then a green candle that opens way above the red candle's close.",
+        "emoji": "🦵🟢"
+      },
+      "description": "Bearish candle followed by a bullish candle that gaps up significantly, with a large gap between the two candles.",
+      "psychology": "Sudden and dramatic shift in sentiment — something fundamental changed.",
+      "mathematical_definition": {
+        "candle1": "C(i-1) < O(i-1)",
+        "candle2": "C(i) > O(i)",
+        "gap_condition": "O(i) > H(i-1)"
+      },
+      "computational_formula": "BullishKicker(i) = (C(i-1)<O(i-1)) AND (C(i)>O(i)) AND (O(i)>H(i-1))",
+      "algorithmic_pseudocode": "IF bearish(i-1) AND bullish(i) AND O(i)>H(i-1): RETURN +100",
+      "formula_parameters": {},
+      "when_to_apply": {
+        "scenario": "After a downtrend, at a major support level, on news events.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long at open of second candle",
+        "conservative": "Wait for second candle to close strong"
+      },
+      "stop_loss": "Below the gap or below second candle low",
+      "take_profit": "Next resistance level",
+      "outcome": "Strong bullish reversal",
+      "risk": "Low-Medium",
+      "confirmation": ["Volume spike", "Gap analysis"],
+      "reliability": "Very High",
+      "notes": "Rare but powerful. Also known as 'Bullish Kicking'."
+    },
+    {
+      "id": "CP040",
+      "name": "Bearish Kicker",
+      "category": "bearish_reversal",
+      "candle_count": 2,
+      "kid_friendly": {
+        "story": "A green candle is going up. Then — BAM! — a red candle GAPS DOWN so hard it kicks the green candle away!",
+        "analogy": "A soccer player kicking the ball in the opposite direction.",
+        "looks_like": "A green candle, then a red candle that opens way below the green candle's close.",
+        "emoji": "🦵🔴"
+      },
+      "description": "Bullish candle followed by a bearish candle that gaps down significantly.",
+      "psychology": "Sudden and dramatic shift in sentiment — something fundamental changed.",
+      "mathematical_definition": {
+        "candle1": "C(i-1) > O(i-1)",
+        "candle2": "C(i) < O(i)",
+        "gap_condition": "O(i) < L(i-1)"
+      },
+      "computational_formula": "BearishKicker(i) = (C(i-1)>O(i-1)) AND (C(i)<O(i)) AND (O(i)<L(i-1))",
+      "algorithmic_pseudocode": "IF bullish(i-1) AND bearish(i) AND O(i)<L(i-1): RETURN -100",
+      "formula_parameters": {},
+      "when_to_apply": {
+        "scenario": "After an uptrend, at a major resistance level, on news events.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short at open of second candle",
+        "conservative": "Wait for second candle to close strong"
+      },
+      "stop_loss": "Above the gap or above second candle high",
+      "take_profit": "Next support level",
+      "outcome": "Strong bearish reversal",
+      "risk": "Low-Medium",
+      "confirmation": ["Volume spike", "Gap analysis"],
+      "reliability": "Very High",
+      "notes": "Rare but powerful."
+    },
+    {
+      "id": "CP041",
+      "name": "Tweezer Bottom",
+      "category": "bullish_reversal",
+      "candle_count": 2,
+      "kid_friendly": {
+        "story": "Two kids try to push a ball down into a hole. Both times, the ball hits the SAME floor and bounces back up!",
+        "analogy": "A basketball bouncing twice on the exact same spot.",
+        "looks_like": "A red candle and a green candle with their bottom tips touching the same line.",
+        "emoji": "🥢"
+      },
+      "description": "Two candles with matching or nearly matching lows; first bearish, second bullish.",
+      "psychology": "Sellers pushed down both days, but buyers defended the same price level each time.",
+      "mathematical_definition": {
+        "candle1": "C(i-1) < O(i-1)",
+        "candle2": "C(i) > O(i)",
+        "matching_lows": "|L(i) - L(i-1)| ≤ 0.1 × ATR(14)",
+        "location": "Close(i-2) < Close(i-6)"
+      },
+      "computational_formula": "TweezerBottom(i) = (C(i-1)<O(i-1)) AND (C(i)>O(i)) AND (|L(i)-L(i-1)|≤0.1×ATR(14)) AND (Close(i-2)<Close(i-6))",
+      "algorithmic_pseudocode": "IF bearish(i-1) AND bullish(i) AND abs(L(i)-L(i-1))<=0.1*ATR(14) AND TrendContext=='Downtrend': RETURN +100",
+      "formula_parameters": {
+        "low_tolerance_atr": 0.1,
+        "atr_period": 14
+      },
+      "when_to_apply": {
+        "scenario": "Bottom of downtrend, near support level.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long at close of second candle",
+        "conservative": "Wait for confirmation candle above second candle high"
+      },
+      "stop_loss": "Below matching lows",
+      "take_profit": "Nearest resistance",
+      "outcome": "Bullish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "RSI oversold", "Support level"],
+      "reliability": "Medium",
+      "notes": "Matching lows show buyers defending the same level."
+    },
+    {
+      "id": "CP042",
+      "name": "Tweezer Top",
+      "category": "bearish_reversal",
+      "candle_count": 2,
+      "kid_friendly": {
+        "story": "Two kids throw a ball up. Both times, the ball hits the SAME ceiling and stops!",
+        "analogy": "A balloon hitting the same ceiling spot twice.",
+        "looks_like": "A green candle and a red candle with their top tips touching the same line.",
+        "emoji": "🥢"
+      },
+      "description": "Two candles with matching or nearly matching highs; first bullish, second bearish.",
+      "psychology": "Buyers pushed up both days, but sellers defended the same price level each time.",
+      "mathematical_definition": {
+        "candle1": "C(i-1) > O(i-1)",
+        "candle2": "C(i) < O(i)",
+        "matching_highs": "|H(i) - H(i-1)| ≤ 0.1 × ATR(14)",
+        "location": "Close(i-2) > Close(i-6)"
+      },
+      "computational_formula": "TweezerTop(i) = (C(i-1)>O(i-1)) AND (C(i)<O(i)) AND (|H(i)-H(i-1)|≤0.1×ATR(14)) AND (Close(i-2)>Close(i-6))",
+      "algorithmic_pseudocode": "IF bullish(i-1) AND bearish(i) AND abs(H(i)-H(i-1))<=0.1*ATR(14) AND TrendContext=='Uptrend': RETURN -100",
+      "formula_parameters": {
+        "high_tolerance_atr": 0.1,
+        "atr_period": 14
+      },
+      "when_to_apply": {
+        "scenario": "Top of uptrend, near resistance level.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short at close of second candle",
+        "conservative": "Wait for confirmation candle below second candle low"
+      },
+      "stop_loss": "Above matching highs",
+      "take_profit": "Nearest support",
+      "outcome": "Bearish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "RSI overbought", "Resistance level"],
+      "reliability": "Medium",
+      "notes": "Matching highs show sellers defending the same level."
+    },
+    {
+      "id": "CP043",
+      "name": "Bullish Abandoned Baby",
+      "category": "bullish_reversal",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "A red candle goes down. Then a tiny baby star appears FAR BELOW, floating alone. Then a big green candle appears FAR ABOVE.",
+        "analogy": "A lonely island between two countries.",
+        "looks_like": "Red candle, then doji floating separately below, then green candle floating separately above.",
+        "emoji": "👶✨"
+      },
+      "description": "Long bearish candle, doji gapping down from both first and third candles (isolated), then long bullish candle gapping up from doji.",
+      "psychology": "First shows selling. Isolated doji indicates exhaustion. Third confirms strong bullish reversal with gap up.",
+      "mathematical_definition": {
+        "candle1": "C(i-2) < O(i-2) AND Body(i-2) > SMA(Body, 5)",
+        "candle2": "Body(i-1) ≤ 0.05 × Range(i-1)",
+        "gap_down": "H(i-1) < L(i-2)",
+        "gap_up": "L(i) > H(i-1)",
+        "candle3": "C(i) > O(i)"
+      },
+      "computational_formula": "BullishAbandonedBaby(i) = (C(i-2)<O(i-2)) AND (Body(i-2)>SMA(Body,5)) AND (Body(i-1)≤0.05×Range(i-1)) AND (H(i-1)<L(i-2)) AND (L(i)>H(i-1)) AND (C(i)>O(i))",
+      "algorithmic_pseudocode": "IF bearish(i-2) AND body(i-2)>SMA(body,5) AND doji(i-1) AND H(i-1)<L(i-2) AND L(i)>H(i-1) AND bullish(i): RETURN +100",
+      "formula_parameters": {
+        "doji_body_max_pct": 0.05
+      },
+      "when_to_apply": {
+        "scenario": "Bottom of strong downtrend, near support level.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long at close of third candle",
+        "conservative": "Enter long on open of next session"
+      },
+      "stop_loss": "Below L(i-1)",
+      "take_profit": "Nearest resistance",
+      "outcome": "Strong bullish reversal",
+      "risk": "Low",
+      "confirmation": ["Volume increase", "RSI oversold", "Gap analysis"],
+      "reliability": "Very High (rare)",
+      "notes": "Gaps on both sides of doji make this very strong but rare."
+    },
+    {
+      "id": "CP044",
+      "name": "Bearish Abandoned Baby",
+      "category": "bearish_reversal",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "A green candle goes up. Then a tiny baby star appears FAR ABOVE, floating alone. Then a big red candle appears FAR BELOW.",
+        "analogy": "A lonely cloud in the sky between two weather systems.",
+        "looks_like": "Green candle, doji floating separately above, then red candle floating separately below.",
+        "emoji": "👶☁️"
+      },
+      "description": "Long bullish candle, doji gapping up from both first and third candles, then long bearish candle gapping down from doji.",
+      "psychology": "First shows buying. Isolated doji indicates exhaustion. Third confirms strong bearish reversal with gap down.",
+      "mathematical_definition": {
+        "candle1": "C(i-2) > O(i-2) AND Body(i-2) > SMA(Body, 5)",
+        "candle2": "Body(i-1) ≤ 0.05 × Range(i-1)",
+        "gap_up": "L(i-1) > H(i-2)",
+        "gap_down": "H(i) < L(i-1)",
+        "candle3": "C(i) < O(i)"
+      },
+      "computational_formula": "BearishAbandonedBaby(i) = (C(i-2)>O(i-2)) AND (Body(i-2)>SMA(Body,5)) AND (Body(i-1)≤0.05×Range(i-1)) AND (L(i-1)>H(i-2)) AND (H(i)<L(i-1)) AND (C(i)<O(i))",
+      "algorithmic_pseudocode": "IF bullish(i-2) AND body(i-2)>SMA(body,5) AND doji(i-1) AND L(i-1)>H(i-2) AND H(i)<L(i-1) AND bearish(i): RETURN -100",
+      "formula_parameters": {
+        "doji_body_max_pct": 0.05
+      },
+      "when_to_apply": {
+        "scenario": "Top of strong uptrend, near resistance level.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short at close of third candle",
+        "conservative": "Enter short on open of next session"
+      },
+      "stop_loss": "Above H(i-1)",
+      "take_profit": "Nearest support",
+      "outcome": "Strong bearish reversal",
+      "risk": "Low",
+      "confirmation": ["Volume increase", "RSI overbought", "Gap analysis"],
+      "reliability": "Very High (rare)",
+      "notes": "Gaps on both sides of doji make this very strong but rare."
+    },
+    {
+      "id": "CP045",
+      "name": "Three Line Strike",
+      "category": "continuation",
+      "candle_count": 4,
+      "kid_friendly": {
+        "story": "Three green soldiers march up. Then a BIG RED monster comes and swallows all three! But wait — the soldiers were just resting, and they'll push the monster back up!",
+        "analogy": "A big wave crashes on the beach, but the ocean still rises.",
+        "looks_like": "Three candles in one direction, then a big opposite candle that engulfs all three.",
+        "emoji": "⚡"
+      },
+      "description": "Three candles moving in the trend direction, followed by a fourth candle that completely engulfs the previous three.",
+      "psychology": "Temporary counter-trend move within a strong trend — the trend resumes after.",
+      "mathematical_definition": {
+        "candles_1_3": "Three consecutive candles in same direction with consecutive higher/lower closes",
+        "candle_4": "Opposite color, opens beyond third close and closes past first candle's open",
+        "engulf_condition": "Candle 4 body engulfs bodies of candles 1-3"
+      },
+      "computational_formula": "ThreeLineStrike(i) = (C(i-3)>O(i-3) AND C(i-2)>O(i-2) AND C(i-1)>O(i-1) AND C(i-2)>C(i-3) AND C(i-1)>C(i-2) AND C(i)<O(i) AND O(i)>C(i-1) AND C(i)<O(i-3)) OR (bearish mirror)",
+      "algorithmic_pseudocode": "For bullish: IF three_bullish_candles AND rising_closes AND bearish(i) AND O(i)>C(i-1) AND C(i)<O(i-3): RETURN +100. For bearish: mirror.",
+      "formula_parameters": {},
+      "when_to_apply": {
+        "scenario": "During a strong trend, after a pullback.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter in trend direction after fourth candle",
+        "conservative": "Wait for fifth candle to confirm"
+      },
+      "stop_loss": "Below/above the fourth candle",
+      "take_profit": "Continue with trend",
+      "outcome": "Trend continuation",
+      "risk": "Medium",
+      "confirmation": ["Volume analysis", "Trend strength"],
+      "reliability": "High",
+      "notes": "Rare but powerful. Also known as '3-Line Strike'."
+    },
+    {
+      "id": "CP046",
+      "name": "Tasuki Gap",
+      "category": "continuation",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "A green candle jumps up. Another green candle jumps even higher (a gap!). Then a red candle comes back to fill part of the gap but can't close it. The green team is still winning!",
+        "analogy": "A kangaroo jumping forward, then a small step back before jumping again.",
+        "looks_like": "Two candles in one direction with a gap, then an opposite candle that partially fills the gap.",
+        "emoji": "🦘"
+      },
+      "description": "A gap in the trend direction followed by a candle that partially fills the gap but does not close it.",
+      "psychology": "Trend continuation — the counter-move is weak and cannot close the gap.",
+      "mathematical_definition": {
+        "candle1_2": "Two candles in same direction with a gap between them",
+        "candle3": "Opposite color, opens within the gap, but does not close the gap"
+      },
+      "computational_formula": "UpsideTasukiGap(i) = (C(i-2)>O(i-2)) AND (C(i-1)>O(i-1)) AND (O(i-1)>C(i-2)) AND (C(i)<O(i)) AND (O(i)<C(i-1)) AND (C(i)>O(i-1))",
+      "algorithmic_pseudocode": "IF two_bullish_candles_with_gap AND bearish(i) AND O(i)<C(i-1) AND C(i)>O(i-1): RETURN +100 (bullish). Mirror for bearish.",
+      "formula_parameters": {},
+      "when_to_apply": {
+        "scenario": "During a trend, after a gap.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter in trend direction after third candle",
+        "conservative": "Wait for fourth candle confirmation"
+      },
+      "stop_loss": "Below/above the gap",
+      "take_profit": "Continue with trend",
+      "outcome": "Trend continuation",
+      "risk": "Medium",
+      "confirmation": ["Gap holding", "Volume"],
+      "reliability": "Medium-High",
+      "notes": "Also known as 'Upside/Downside Tasuki Gap'."
+    },
+    {
+      "id": "CP047",
+      "name": "Ladder Bottom",
+      "category": "bullish_reversal",
+      "candle_count": 5,
+      "kid_friendly": {
+        "story": "The stairs go down, down, down. Then someone stops and looks up. Then they JUMP to the top!",
+        "analogy": "A ladder leaning against a wall — you can climb up!",
+        "looks_like": "Three red candles going down, a fourth red candle with a small upper wick, then a big green candle.",
+        "emoji": "🪜"
+      },
+      "description": "Three consecutively lower black candles, a fourth black candle with a non-very-short upper shadow, then a white candle that opens above the prior open and closes above the prior high.",
+      "psychology": "Panic selling exhausts itself; a reversal is imminent.",
+      "mathematical_definition": {
+        "candles_1_3": "Three black candles with consecutively lower opens and closes",
+        "candle_4": "Black candle with upper shadow > 0.1 × Range",
+        "candle_5": "White candle, O(i) > O(i-1), C(i) > H(i-1)"
+      },
+      "computational_formula": "LadderBottom(i) = (C(i-4)<O(i-4)) AND (C(i-3)<O(i-3)) AND (C(i-2)<O(i-2)) AND (C(i-3)<C(i-4)) AND (C(i-2)<C(i-3)) AND (C(i-1)<O(i-1)) AND (UpperWick(i-1)>0.1×Range(i-1)) AND (C(i)>O(i)) AND (O(i)>O(i-1)) AND (C(i)>H(i-1))",
+      "algorithmic_pseudocode": "IF three_lower_black_candles AND fourth_black_with_upper_wick AND fifth_white_above_prior_high: RETURN +100",
+      "formula_parameters": {},
+      "when_to_apply": {
+        "scenario": "At the end of a strong downtrend, near support.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long at close of fifth candle",
+        "conservative": "Wait for next candle to confirm"
+      },
+      "stop_loss": "Below fifth candle low",
+      "take_profit": "Nearest resistance",
+      "outcome": "Bullish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "RSI oversold"],
+      "reliability": "High",
+      "notes": "Powerful five-candle reversal pattern."
+    },
+    {
+      "id": "CP048",
+      "name": "Homing Pigeon",
+      "category": "bullish_reversal",
+      "candle_count": 2,
+      "kid_friendly": {
+        "story": "A big red mama pigeon flies down. A tiny red baby pigeon sits INSIDE her. The baby is safe — the fall is over!",
+        "analogy": "A mama bird protecting her baby inside her wings.",
+        "looks_like": "Two red candles where the second is smaller and inside the first.",
+        "emoji": "🕊️"
+      },
+      "description": "Two-candle pattern: a long black candle followed by a small black candle whose real body sits inside the prior body.",
+      "psychology": "Selling is losing momentum; the small candle indicates exhaustion.",
+      "mathematical_definition": {
+        "candle1": "C(i-1) < O(i-1) AND Body(i-1) > SMA(Body, 5)",
+        "candle2": "C(i) < O(i)",
+        "containment": "O(i) > C(i-1) AND C(i) < O(i-1)",
+        "body_ratio": "Body(i) < Body(i-1) × 0.5"
+      },
+      "computational_formula": "HomingPigeon(i) = (C(i-1)<O(i-1)) AND (Body(i-1)>SMA(Body,5)) AND (C(i)<O(i)) AND (O(i)>C(i-1)) AND (C(i)<O(i-1)) AND (Body(i)<Body(i-1)×0.5)",
+      "algorithmic_pseudocode": "IF bearish(i-1) AND body(i-1)>SMA(body,5) AND bearish(i) AND O(i)>C(i-1) AND C(i)<O(i-1) AND body(i)<body(i-1)*0.5: RETURN +100",
+      "formula_parameters": {
+        "body_long_period": 5,
+        "body_ratio_max": 0.5
+      },
+      "when_to_apply": {
+        "scenario": "Bottom of downtrend, near support.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long when price breaks above second candle high",
+        "conservative": "Wait for bullish confirmation candle"
+      },
+      "stop_loss": "Below L(i-1)",
+      "take_profit": "Nearest resistance",
+      "outcome": "Bullish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "RSI oversold"],
+      "reliability": "Medium",
+      "notes": "A weak reversal indicator; needs confirmation."
+    },
+    {
+      "id": "CP049",
+      "name": "Matching Low",
+      "category": "bullish_reversal",
+      "candle_count": 2,
+      "kid_friendly": {
+        "story": "Two red candles go down. But both stop at EXACTLY the same floor! The floor is super strong.",
+        "analogy": "A ball bouncing on exactly the same spot twice.",
+        "looks_like": "Two red candles with the same closing price.",
+        "emoji": "🥢"
+      },
+      "description": "Two black candles with matching closing prices, appearing after a downtrend.",
+      "psychology": "Sellers tried twice but failed to push below the same level.",
+      "mathematical_definition": {
+        "candle1": "C(i-1) < O(i-1)",
+        "candle2": "C(i) < O(i)",
+        "matching_closes": "|C(i) - C(i-1)| ≤ 0.001 × C(i-1)"
+      },
+      "computational_formula": "MatchingLow(i) = (C(i-1)<O(i-1)) AND (C(i)<O(i)) AND (|C(i)-C(i-1)| ≤ 0.001×C(i-1))",
+      "algorithmic_pseudocode": "IF bearish(i-1) AND bearish(i) AND abs(C(i)-C(i-1))<=0.001*C(i-1): RETURN +100",
+      "formula_parameters": {
+        "close_tolerance_pct": 0.001
+      },
+      "when_to_apply": {
+        "scenario": "Bottom of downtrend, near support.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long when price breaks above second candle high",
+        "conservative": "Wait for bullish confirmation candle"
+      },
+      "stop_loss": "Below matching lows",
+      "take_profit": "Nearest resistance",
+      "outcome": "Bullish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "Support level"],
+      "reliability": "Medium",
+      "notes": "Similar to Tweezer Bottom but uses closes instead of lows."
+    },
+    {
+      "id": "CP050",
+      "name": "Stick Sandwich",
+      "category": "bullish_reversal",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "A red candle, then a green candle, then ANOTHER red candle that stops at the EXACT same price as the first red candle! Like a sandwich!",
+        "analogy": "A sandwich with red bread, green filling, red bread.",
+        "looks_like": "Red, green, red — the two red candles close at the same price.",
+        "emoji": "🥪"
+      },
+      "description": "Two black candles with matching closes, separated by a white candle.",
+      "psychology": "Support is holding strong at the matching closes.",
+      "mathematical_definition": {
+        "candle1": "C(i-2) < O(i-2)",
+        "candle2": "C(i-1) > O(i-1)",
+        "candle3": "C(i) < O(i)",
+        "matching_closes": "|C(i) - C(i-2)| ≤ 0.001 × C(i-2)"
+      },
+      "computational_formula": "StickSandwich(i) = (C(i-2)<O(i-2)) AND (C(i-1)>O(i-1)) AND (C(i)<O(i)) AND (|C(i)-C(i-2)|≤0.001×C(i-2))",
+      "algorithmic_pseudocode": "IF bearish(i-2) AND bullish(i-1) AND bearish(i) AND abs(C(i)-C(i-2))<=0.001*C(i-2): RETURN +100",
+      "formula_parameters": {
+        "close_tolerance_pct": 0.001
+      },
+      "when_to_apply": {
+        "scenario": "Bottom of downtrend, near support.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long when price breaks above middle candle high",
+        "conservative": "Wait for bullish confirmation candle"
+      },
+      "stop_loss": "Below matching closes",
+      "take_profit": "Nearest resistance",
+      "outcome": "Bullish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "Support level"],
+      "reliability": "Medium-High",
+      "notes": "The matching closes show strong support."
+    },
+    {
+      "id": "CP051",
+      "name": "Breakaway",
+      "category": "reversal",
+      "candle_count": 5,
+      "kid_friendly": {
+        "story": "A big move happens. Then the market keeps going the same way. But then it slows down, and finally — REVERSAL!",
+        "analogy": "A car speeding in one direction, then braking and turning around.",
+        "looks_like": "Five candles: a long first candle, a gap, two more candles extending, then a reversal candle.",
+        "emoji": "🔄"
+      },
+      "description": "Five-candle reversal pattern: a long first candle, a same-colored second candle that gaps away, two more candles extending the move, then a reversal candle.",
+      "psychology": "Trend exhaustion after a gap move.",
+      "mathematical_definition": {
+        "candle1": "Long candle in trend direction",
+        "candle2": "Same color, gaps away from candle1 by its body",
+        "candles_3_4": "Extend the move",
+        "candle5": "Opposite color, closes beyond candle1 close"
+      },
+      "computational_formula": "Breakaway(i) = (Body(i-4)>SMA(Body,5)) AND (gap between candle1 and candle2) AND (candle5 opposite color closing beyond candle1 close)",
+      "algorithmic_pseudocode": "IF long_first_candle AND gap_second_candle AND two_more_candles AND reversal_candle_closes_beyond_first: RETURN +100 or -100 based on direction",
+      "formula_parameters": {},
+      "when_to_apply": {
+        "scenario": "After a strong trend with a gap, near exhaustion.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter on reversal candle close",
+        "conservative": "Wait for next candle confirmation"
+      },
+      "stop_loss": "Below/above the reversal candle",
+      "take_profit": "Nearest opposing level",
+      "outcome": "Reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "Gap analysis"],
+      "reliability": "Medium-High",
+      "notes": "Five-candle reversal pattern."
+    },
+    {
+      "id": "CP052",
+      "name": "Two Crows",
+      "category": "bearish_reversal",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "A green candle goes up. Then two black crows fly in and sit on top of it! Uh oh — trouble ahead!",
+        "analogy": "Two black crows landing on a green roof.",
+        "looks_like": "Green candle, then two red candles that gap above the green one.",
+        "emoji": "🐦⬛🐦⬛"
+      },
+      "description": "Three-candle bearish reversal: a white candle, then two black candles that gap above the white candle but fail to hold.",
+      "psychology": "The gap up fails, and sellers take over.",
+      "mathematical_definition": {
+        "candle1": "C(i-2) > O(i-2) AND Body(i-2) > SMA(Body, 5)",
+        "candle2": "C(i-1) < O(i-1) AND O(i-1) > C(i-2)",
+        "candle3": "C(i) < O(i) AND C(i) < C(i-1)"
+      },
+      "computational_formula": "TwoCrows(i) = (C(i-2)>O(i-2)) AND (Body(i-2)>SMA(Body,5)) AND (C(i-1)<O(i-1)) AND (O(i-1)>C(i-2)) AND (C(i)<O(i)) AND (C(i)<C(i-1))",
+      "algorithmic_pseudocode": "IF bullish(i-2) AND bearish(i-1) AND O(i-1)>C(i-2) AND bearish(i) AND C(i)<C(i-1): RETURN -100",
+      "formula_parameters": {
+        "body_long_period": 5
+      },
+      "when_to_apply": {
+        "scenario": "Top of uptrend, near resistance.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short at close of third candle",
+        "conservative": "Wait for bearish confirmation candle"
+      },
+      "stop_loss": "Above the high of the two crows",
+      "take_profit": "Nearest support",
+      "outcome": "Bearish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "RSI overbought"],
+      "reliability": "Medium",
+      "notes": "A three-candle bearish reversal pattern."
+    },
+    {
+      "id": "CP053",
+      "name": "Upside Gap Two Crows",
+      "category": "bearish_reversal",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "A green candle jumps up. Then two black crows fly in ABOVE it, and the second crow is even higher — but then falls!",
+        "analogy": "Two crows trying to fly higher but getting tired.",
+        "looks_like": "Green candle, then two red candles gapping up, with the second red candle engulfing the first red candle.",
+        "emoji": "🐦⬛🐦⬛"
+      },
+      "description": "Three-candle bearish reversal: a white candle, a black candle that gaps up, and a second black candle that engulfs the first black candle.",
+      "psychology": "Failed gap up and bearish engulfing within the gap.",
+      "mathematical_definition": {
+        "candle1": "C(i-2) > O(i-2)",
+        "candle2": "C(i-1) < O(i-1) AND O(i-1) > C(i-2)",
+        "candle3": "C(i) < O(i) AND O(i) > O(i-1) AND C(i) < C(i-1)"
+      },
+      "computational_formula": "UpsideGapTwoCrows(i) = (C(i-2)>O(i-2)) AND (C(i-1)<O(i-1)) AND (O(i-1)>C(i-2)) AND (C(i)<O(i)) AND (O(i)>O(i-1)) AND (C(i)<C(i-1))",
+      "algorithmic_pseudocode": "IF bullish(i-2) AND bearish(i-1) AND O(i-1)>C(i-2) AND bearish(i) AND O(i)>O(i-1) AND C(i)<C(i-1): RETURN -100",
+      "formula_parameters": {},
+      "when_to_apply": {
+        "scenario": "Top of uptrend, near resistance.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short at close of third candle",
+        "conservative": "Wait for bearish confirmation candle"
+      },
+      "stop_loss": "Above the high of the two crows",
+      "take_profit": "Nearest support",
+      "outcome": "Bearish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "RSI overbought"],
+      "reliability": "Medium",
+      "notes": "A variation of Two Crows with an engulfing second crow."
+    },
+    {
+      "id": "CP054",
+      "name": "Unique Three River",
+      "category": "bullish_reversal",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "A red candle goes down. Then a green candle with a long bottom tail appears — like a fishing rod! Then another green candle to finish.",
+        "analogy": "Fishing at the bottom of a river.",
+        "looks_like": "Red candle, then a small green candle with a long lower wick, then another green candle.",
+        "emoji": "🎣"
+      },
+      "description": "Three-candle bullish reversal: a long black candle, a small black or green candle with a long lower shadow that engulfs the prior low, and a green candle.",
+      "psychology": "Sellers pushed to new lows but buyers rejected it strongly.",
+      "mathematical_definition": {
+        "candle1": "C(i-2) < O(i-2)",
+        "candle2": "LowerWick(i-1) > Body(i-1) AND L(i-1) < L(i-2)",
+        "candle3": "C(i) > O(i) AND C(i) > C(i-2)"
+      },
+      "computational_formula": "UniqueThreeRiver(i) = (C(i-2)<O(i-2)) AND (LowerWick(i-1)>Body(i-1)) AND (L(i-1)<L(i-2)) AND (C(i)>O(i)) AND (C(i)>C(i-2))",
+      "algorithmic_pseudocode": "IF bearish(i-2) AND long_lower_wick(i-1) AND L(i-1)<L(i-2) AND bullish(i) AND C(i)>C(i-2): RETURN +100",
+      "formula_parameters": {},
+      "when_to_apply": {
+        "scenario": "Bottom of downtrend, near support.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long at close of third candle",
+        "conservative": "Wait for bullish confirmation candle"
+      },
+      "stop_loss": "Below L(i-1)",
+      "take_profit": "Nearest resistance",
+      "outcome": "Bullish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "RSI oversold"],
+      "reliability": "Medium",
+      "notes": "Rare three-candle bullish reversal."
+    },
+    {
+      "id": "CP055",
+      "name": "Concealing Baby Swallow",
+      "category": "bullish_reversal",
+      "candle_count": 4,
+      "kid_friendly": {
+        "story": "Two black crows fly down. A baby swallow tries to fly but falls. Then a BIGGER bird comes and swallows the baby — but it's actually saving it!",
+        "analogy": "A mama bird catching a falling baby.",
+        "looks_like": "Two black marubozu candles, a third black candle with an upper wick, then a large black candle engulfing the third.",
+        "emoji": "🐦"
+      },
+      "description": "Four-candle pattern: two black marubozus, then a black candle that gaps down but pokes its upper shadow into the prior body, then a larger black candle fully engulfing the third.",
+      "psychology": "Extreme selling exhaustion — a bullish reversal is imminent.",
+      "mathematical_definition": {
+        "candles_1_2": "Two black Marubozu candles",
+        "candle3": "Black candle, gaps down, upper shadow into candle2 body",
+        "candle4": "Larger black candle engulfing candle3"
+      },
+      "computational_formula": "ConcealingBabySwallow(i) = (marubozu(i-3)) AND (marubozu(i-2)) AND (bearish(i-1)) AND (UpperWick(i-1)>0) AND (bearish(i)) AND (O(i)<O(i-1)) AND (C(i)<C(i-1))",
+      "algorithmic_pseudocode": "IF marubozu(i-3) AND marubozu(i-2) AND bearish(i-1) AND bearish(i) AND engulfing(i, i-1): RETURN +100",
+      "formula_parameters": {},
+      "when_to_apply": {
+        "scenario": "At the end of a downtrend, near support.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter long at close of fourth candle",
+        "conservative": "Wait for bullish confirmation candle"
+      },
+      "stop_loss": "Below the fourth candle low",
+      "take_profit": "Nearest resistance",
+      "outcome": "Bullish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume increase", "RSI oversold"],
+      "reliability": "Medium-High",
+      "notes": "Rare four-candle pattern."
+    },
+    {
+      "id": "CP056",
+      "name": "In-Neck",
+      "category": "bearish_continuation",
+      "candle_count": 2,
+      "kid_friendly": {
+        "story": "A red candle falls. Then a green candle tries to climb but only gets to the red candle's neck. It's tired — the fall will continue!",
+        "analogy": "A climber reaching only the neck of the mountain before falling again.",
+        "looks_like": "Red candle, then a green candle that closes slightly into the red candle's body.",
+        "emoji": "📉"
+      },
+      "description": "Two-candle bearish continuation: a long black candle followed by a white candle that opens below the prior low and closes slightly into the prior body.",
+      "psychology": "Weak bounce — sellers still in control.",
+      "mathematical_definition": {
+        "candle1": "C(i-1) < O(i-1) AND Body(i-1) > SMA(Body, 5)",
+        "candle2": "C(i) > O(i) AND O(i) < L(i-1) AND C(i) < O(i-1)"
+      },
+      "computational_formula": "InNeck(i) = (C(i-1)<O(i-1)) AND (Body(i-1)>SMA(Body,5)) AND (C(i)>O(i)) AND (O(i)<L(i-1)) AND (C(i)<O(i-1))",
+      "algorithmic_pseudocode": "IF bearish(i-1) AND body(i-1)>SMA(body,5) AND bullish(i) AND O(i)<L(i-1) AND C(i)<O(i-1): RETURN -100",
+      "formula_parameters": {
+        "body_long_period": 5
+      },
+      "when_to_apply": {
+        "scenario": "During a downtrend, after a small bounce.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short at close of second candle",
+        "conservative": "Wait for bearish confirmation candle"
+      },
+      "stop_loss": "Above the second candle high",
+      "take_profit": "Continue with downtrend",
+      "outcome": "Downtrend continuation",
+      "risk": "Medium",
+      "confirmation": ["Volume", "Trend strength"],
+      "reliability": "Medium",
+      "notes": "Bearish continuation pattern."
+    },
+    {
+      "id": "CP057",
+      "name": "Thrusting",
+      "category": "bearish_continuation",
+      "candle_count": 2,
+      "kid_friendly": {
+        "story": "A red candle falls. A green candle tries to push UP into the red candle's body but can't get past the middle. Not strong enough!",
+        "analogy": "A weak push that doesn't reach the target.",
+        "looks_like": "Red candle, then a green candle that closes into the red candle's body but below the midpoint.",
+        "emoji": "🚫"
+      },
+      "description": "Two-candle bearish continuation: a black candle followed by a white candle that opens below the prior low and closes into the prior body but below the midpoint.",
+      "psychology": "Bounce is weak — sellers remain in control.",
+      "mathematical_definition": {
+        "candle1": "C(i-1) < O(i-1) AND Body(i-1) > SMA(Body, 5)",
+        "candle2": "C(i) > O(i) AND O(i) < L(i-1) AND C(i) < (O(i-1)+C(i-1))/2"
+      },
+      "computational_formula": "Thrusting(i) = (C(i-1)<O(i-1)) AND (Body(i-1)>SMA(Body,5)) AND (C(i)>O(i)) AND (O(i)<L(i-1)) AND (C(i)<(O(i-1)+C(i-1))/2)",
+      "algorithmic_pseudocode": "IF bearish(i-1) AND body(i-1)>SMA(body,5) AND bullish(i) AND O(i)<L(i-1) AND C(i)<(O(i-1)+C(i-1))/2: RETURN -100",
+      "formula_parameters": {
+        "body_long_period": 5
+      },
+      "when_to_apply": {
+        "scenario": "During a downtrend, after a weak bounce.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short at close of second candle",
+        "conservative": "Wait for bearish confirmation candle"
+      },
+      "stop_loss": "Above the second candle high",
+      "take_profit": "Continue with downtrend",
+      "outcome": "Downtrend continuation",
+      "risk": "Medium",
+      "confirmation": ["Volume", "Trend strength"],
+      "reliability": "Medium",
+      "notes": "Similar to In-Neck but closes below the midpoint."
+    },
+    {
+      "id": "CP058",
+      "name": "Separating Lines",
+      "category": "continuation",
+      "candle_count": 2,
+      "kid_friendly": {
+        "story": "A candle moves in one direction. Then another candle opens at the EXACT same price but moves in the opposite direction. The trend will continue!",
+        "analogy": "Two trains leaving the same station but going opposite ways — the main track continues.",
+        "looks_like": "Two candles that open at the same price but move in opposite directions.",
+        "emoji": "🚂"
+      },
+      "description": "Two-candle continuation: the second candle opposes the first in color, opens at the same price as the first, and is a long-bodied belt hold.",
+      "psychology": "Trend continuation after a temporary pause.",
+      "mathematical_definition": {
+        "candle1": "Bullish or bearish belt hold",
+        "candle2": "Opposite color, O(i) = O(i-1), long body"
+      },
+      "computational_formula": "SeparatingLines(i) = (|O(i) - O(i-1)| ≤ 0.001×O(i-1)) AND (color(i) != color(i-1)) AND (Body(i) > SMA(Body,5))",
+      "algorithmic_pseudocode": "IF abs(O(i)-O(i-1))<=0.001*O(i-1) AND different_colors AND body(i)>SMA(body,5): RETURN +100 or -100 based on direction",
+      "formula_parameters": {
+        "open_tolerance_pct": 0.001,
+        "body_long_period": 5
+      },
+      "when_to_apply": {
+        "scenario": "During a trend, at a pullback.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter in trend direction at close of second candle",
+        "conservative": "Wait for third candle confirmation"
+      },
+      "stop_loss": "Below/above the second candle",
+      "take_profit": "Continue with trend",
+      "outcome": "Trend continuation",
+      "risk": "Medium",
+      "confirmation": ["Volume", "Trend strength"],
+      "reliability": "Medium-High",
+      "notes": "Also known as 'Dividing Lines'."
+    },
+    {
+      "id": "CP059",
+      "name": "Stalled Pattern",
+      "category": "bearish_reversal",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "Three green soldiers march up. But the third one is TIRED — it's small and slow! The march is about to stop!",
+        "analogy": "A runner slowing down at the end of a race.",
+        "looks_like": "Three green candles, with the third being much smaller than the first two.",
+        "emoji": "😴"
+      },
+      "description": "Three-candle bearish reversal: three white candles with consecutively higher closes, but the third has a small body riding on the shoulder of the second.",
+      "psychology": "Buying momentum is stalling — a reversal is near.",
+      "mathematical_definition": {
+        "candle1": "C(i-2) > O(i-2) AND Body(i-2) > SMA(Body, 5)",
+        "candle2": "C(i-1) > O(i-1) AND Body(i-1) > SMA(Body, 5)",
+        "candle3": "C(i) > O(i) AND Body(i) < 0.5 × Body(i-1)",
+        "closes": "C(i) > C(i-1) > C(i-2)"
+      },
+      "computational_formula": "StalledPattern(i) = (C(i-2)>O(i-2)) AND (C(i-1)>O(i-1)) AND (C(i)>O(i)) AND (C(i)>C(i-1)) AND (C(i-1)>C(i-2)) AND (Body(i)<0.5×Body(i-1))",
+      "algorithmic_pseudocode": "IF three_bullish_candles AND rising_closes AND body(i)<0.5*body(i-1): RETURN -100",
+      "formula_parameters": {
+        "body_ratio_max": 0.5
+      },
+      "when_to_apply": {
+        "scenario": "At the top of an uptrend, near resistance.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short at close of third candle",
+        "conservative": "Wait for bearish confirmation candle"
+      },
+      "stop_loss": "Above the third candle high",
+      "take_profit": "Nearest support",
+      "outcome": "Bearish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume decrease", "RSI overbought"],
+      "reliability": "Medium-High",
+      "notes": "Also known as 'Deliberation Pattern'."
+    },
+    {
+      "id": "CP060",
+      "name": "Advance Block",
+      "category": "bearish_reversal",
+      "candle_count": 3,
+      "kid_friendly": {
+        "story": "Three green candles go up. But each one has a bigger top wick — buyers are getting tired!",
+        "analogy": "Three balloons going up but each one is losing air faster.",
+        "looks_like": "Three green candles with increasing upper wicks.",
+        "emoji": "🎈"
+      },
+      "description": "Three-candle bearish reversal: three white candles with consecutively higher closes, but with increasing upper shadows.",
+      "psychology": "Buyers are losing strength — each rally is being sold into.",
+      "mathematical_definition": {
+        "candle1": "C(i-2) > O(i-2)",
+        "candle2": "C(i-1) > O(i-1) AND C(i-1) > C(i-2)",
+        "candle3": "C(i) > O(i) AND C(i) > C(i-1)",
+        "shadows": "UpperWick(i-2) < UpperWick(i-1) < UpperWick(i)"
+      },
+      "computational_formula": "AdvanceBlock(i) = (C(i-2)>O(i-2)) AND (C(i-1)>O(i-1)) AND (C(i)>O(i)) AND (C(i)>C(i-1)) AND (C(i-1)>C(i-2)) AND (UpperWick(i-2)<UpperWick(i-1)) AND (UpperWick(i-1)<UpperWick(i))",
+      "algorithmic_pseudocode": "IF three_bullish_candles AND rising_closes AND increasing_upper_wicks: RETURN -100",
+      "formula_parameters": {},
+      "when_to_apply": {
+        "scenario": "At the top of an uptrend, near resistance.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter short at close of third candle",
+        "conservative": "Wait for bearish confirmation candle"
+      },
+      "stop_loss": "Above the third candle high",
+      "take_profit": "Nearest support",
+      "outcome": "Bearish reversal",
+      "risk": "Medium",
+      "confirmation": ["Volume decrease", "RSI divergence"],
+      "reliability": "Medium",
+      "notes": "Shows buyer exhaustion."
+    },
+    {
+      "id": "CP061",
+      "name": "Closing Marubozu",
+      "category": "continuation",
+      "candle_count": 1,
+      "kid_friendly": {
+        "story": "A candle that closes at the very TOP (green) or very BOTTOM (red) with no wick on the closing side!",
+        "analogy": "A door slamming shut at one extreme.",
+        "looks_like": "A long body with a wick on only one side.",
+        "emoji": "🚪"
+      },
+      "description": "Long body with no shadow on the closing side; opens with a shadow on the opposite side.",
+      "psychology": "Strong momentum in the direction of the close.",
+      "mathematical_definition": {
+        "body_condition": "Body(i) > SMA(Body, 5)",
+        "close_wick": "For bullish: UpperWick(i) < 0.05 × Range(i); For bearish: LowerWick(i) < 0.05 × Range(i)"
+      },
+      "computational_formula": "ClosingMarubozu(i) = (Body(i)>SMA(Body,5)) AND ((C(i)>O(i) AND UpperWick(i)<0.05×Range(i)) OR (C(i)<O(i) AND LowerWick(i)<0.05×Range(i)))",
+      "algorithmic_pseudocode": "IF body>SMA(body,5) AND ((bullish AND upper<0.05*range) OR (bearish AND lower<0.05*range)): RETURN +100 or -100",
+      "formula_parameters": {
+        "body_long_period": 5,
+        "shadow_max_ratio": 0.05
+      },
+      "when_to_apply": {
+        "scenario": "During trend or at start of a move.",
+        "best_timeframes": ["Daily", "Weekly"]
+      },
+      "entry": {
+        "aggressive": "Enter in direction of the candle",
+        "conservative": "Wait for next candle confirmation"
+      },
+      "stop_loss": "Below/above the candle",
+      "take_profit": "Nearest opposing level",
+      "outcome": "Trend continuation",
+      "risk": "Medium",
+      "confirmation": ["Volume increase"],
+      "reliability": "High",
+      "notes": "A variation of Marubozu."
+    }
+  ],
+
+  "engine_configuration": {
+    "confirmation_rules": [
+      "Never trade a candlestick pattern alone — always combine with at least one confirming indicator (RSI, MACD, volume)",
+      "Patterns near support/resistance levels have 2-3x higher reliability",
+      "Volume should increase on the confirmation candle (VR > 1.2)",
+      "Multi-timeframe confirmation (e.g., daily + 4H + weekly) increases win rate significantly",
+      "Trend context is mandatory for reversal patterns — always check SMA(20) vs SMA(50)"
+    ],
+    "risk_management": {
+      "max_risk_per_trade": "1-2% of total capital",
+      "position_sizing_formula": "Position Size = (Capital × Risk%) / |Entry - StopLoss|",
+      "atr_based_stop": "Stop = Entry ± (1.5 to 2.0) × ATR(14)",
+      "take_profit_formula": "Target = Entry + (Risk × R:R ratio), where R:R ≥ 2.0",
+      "max_concurrent_trades": "3-5 to avoid overexposure",
+      "trailing_stop": "Move stop to breakeven after 1R gain, trail by 1.5×ATR after 2R"
+    },
+    "signal_output_convention": {
+      "bullish": "+100 (strong buy signal)",
+      "bearish": "-100 (strong sell signal)",
+      "neutral": "0 (no trade / wait)",
+      "confidence_scaling": "Multiply raw signal by confidence score (0.0 - 1.0) for weighted position sizing"
+    },
+    "algorithmic_implementation": {
+      "data_requirements": [
+        "OHLCV data (Open, High, Low, Close, Volume)",
+        "Minimum 50 bars historical data for trend detection",
+        "Pre-computed ATR(14), SMA(C,20), SMA(C,50), SMA(V,20)"
+      ],
+      "pattern_recognition_engine": "Use ratio-based thresholds (body/range, wick/body) with ATR normalisation — never absolute price values",
+      "backtesting": "Test each pattern with ≥ 2 years of historical data across 5+ instruments and 3+ timeframes",
+      "walk_forward_testing": "Split data 70/30 in-sample vs out-of-sample",
+      "parameter_optimization": "Use grid search on threshold parameters; avoid overfitting with walk-forward validation"
+    },
+    "scoring_and_ranking": {
+      "pattern_strength_score": "SS = (body_ratio_score × 0.3) + (wick_ratio_score × 0.3) + (volume_score × 0.4)",
+      "combined_with_indicators": "FinalScore = PatternScore × RSIScore × VolumeScore × TrendScore",
+      "signal_ranking": "Rank all triggered signals by FinalScore; trade top N per bar"
+    },
+    "global_notes": {
+      "for_kids": "Every pattern is like a little story about who's winning — the green team (buyers) or the red team (sellers). Trade with the winning team!",
+      "for_traders": "Candlestick patterns are probabilistic, not deterministic. Context (trend, S/R, volume) is more important than the pattern itself.",
+      "for_engineers": "All patterns are ratio-based and ATR-normalised for cross-instrument compatibility. Confidence scoring enables position sizing.",
+      "disclaimer": "This is educational reference material. Past patterns do not guarantee future results. Always paper-trade before going live."
+    }
+  }
+}
