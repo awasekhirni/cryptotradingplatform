@@ -1,0 +1,2640 @@
+{
+  "Universal_Algo_Trading_Standard": {
+    "version": "2.0.0",
+    "description": "Universal Standard for Algorithmic Trading Strategies (USTATS) - Collated & Enhanced for Automated Execution",
+    "metadata": {
+      "title": "Universal 151 Trading Strategies Engine",
+      "sources": [
+        "151 Trading Strategies by Zura Kakushadze and Juan Andrés Serur"
+      ],
+      "total_strategies": 151,
+      "last_updated": "2026-10-08",
+      "audience": {
+        "humans": "Quant researchers, portfolio managers, and algorithmic traders",
+        "machines": "Automated trading engines, execution management systems (EMS), and order management systems (OMS)"
+      },
+      "global_notation": {
+        "S": "Spot / Underlying Price",
+        "K": "Strike Price",
+        "T": "Time to Maturity",
+        "C": "Call Price / Coupon",
+        "P": "Put Price / Probability",
+        "R": "Return / Risk-free Rate",
+        "F": "Futures Price",
+        "V": "Volatility / Volume",
+        "D": "Duration / Dividend / Debit",
+        "Z": "Z-score",
+        "σ": "Volatility / Standard Deviation",
+        "μ": "Expected Return",
+        "Σ": "Covariance Matrix",
+        "w": "Portfolio Weight"
+      }
+    },
+    "algo_execution_framework": {
+      "latency_profiles": {
+        "HFT": "High-Frequency (Microseconds to Milliseconds) - Co-located, FPGA/ASIC",
+        "MFT": "Medium-Frequency (Seconds to Minutes) - Algorithmic slicing, TWAP/VWAP",
+        "LFT": "Low-Frequency (Hours to Days) - Daily/Monthly rebalancing, Portfolio Optimization"
+      },
+      "data_feeds": {
+        "L1": "Top of Book (BBO)",
+        "L2": "Market Depth",
+        "L3": "Full Order Book (Quote-by-Quote)",
+        "OHLCV": "Candlestick / Bar Data",
+        "Options_Chain": "Implied Vol Surface, Greeks",
+        "Alternative": "Sentiment, Satellite, Order Flow, COT Reports"
+      },
+      "order_types": [
+        "MARKET",
+        "LIMIT",
+        "IOC",
+        "FOK",
+        "STOP_LIMIT",
+        "TWAP",
+        "VWAP",
+        "ICEBERG",
+        "SNAP"
+      ],
+      "position_sizing": [
+        "Fixed_Fractional",
+        "Volatility_Targeting",
+        "Kelly_Criterion",
+        "Risk_Parity",
+        "Dollar_Neutral",
+        "Leverage_Constrained"
+      ]
+    },
+    "universal_formulas": {
+      "risk_metrics": {
+        "sharpe_ratio": "Sharpe = (Return - RiskFree) / Volatility",
+        "atr": "ATR(n) = SMA(TrueRange, n)",
+        "duration": "ModD = - (1/P) * (dP/dR)",
+        "var": "VaR = μ - Z_alpha * σ",
+        "kelly_criterion": "f* = (p * b - q) / b"
+      },
+      "options_payoffs": {
+        "long_call": "max(S_T - K, 0)",
+        "short_call": "-max(S_T - K, 0)",
+        "long_put": "max(K - S_T, 0)",
+        "short_put": "-max(K - S_T, 0)"
+      },
+      "arbitrage_metrics": {
+        "fair_futures": "F*(t,T) = (S(t) - D(t,T)) * exp(r * (T-t))",
+        "basis": "B(t,T) = F(t,T) - F*(t,T)",
+        "put_call_parity": "C - P = S - K * exp(-r * T)"
+      }
+    },
+    "strategies": [
+      {
+        "id": "TS001",
+        "name": "Covered Call",
+        "asset_class": "Options",
+        "category": "income / hedging",
+        "legs": 2,
+        "description": "Long Stock + Short OTM Call. Generates income while capping upside.",
+        "math": "Payoff = min(S_T, K) - S_0 + C_premium",
+        "pseudocode": "IF holds_stock AND outlook == 'neutral': SELL OTM_CALL(K)",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS002",
+        "name": "Price-Momentum",
+        "asset_class": "Stocks",
+        "category": "directional / cross-sectional",
+        "legs": "N",
+        "description": "Long Top Decile, Short Bottom Decile based on 12m cumulative return (skip 1m).",
+        "math": "Signal = Rank(R_cum_i, 12m_skip_1m)",
+        "pseudocode": "RANK universe BY R_cum DESC; BUY top_10%; SHORT bottom_10%",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "OHLCV",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS003",
+        "name": "Pairs Trading",
+        "asset_class": "Stocks",
+        "category": "market-neutral / mean-reversion",
+        "legs": 2,
+        "description": "Long cheap, Short rich based on Z-score of cointegrated spread.",
+        "math": "Z = (R'_A - R'_B) / StdDev; Enter if |Z| > 2.0",
+        "pseudocode": "IF Z > 2.0: SHORT A, BUY B. EXIT AT Z == 0",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "L1/OHLCV",
+          "order_type": "LIMIT",
+          "position_sizing": "Dollar_Neutral",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS004",
+        "name": "Barbell",
+        "asset_class": "Fixed Income",
+        "category": "yield-curve",
+        "legs": 2,
+        "description": "50% Short-Term Bonds + 50% Long-Term Bonds. Matches duration of bullet, higher convexity.",
+        "math": "w1*D1 + w2*D2 = Target_D",
+        "pseudocode": "SOLVE w1, w2 FOR Target_Duration; BUY w1, w2",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Yield_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "Risk_Parity",
+          "venue": "OTC/Exchange"
+        }
+      },
+      {
+        "id": "TS005",
+        "name": "Cash-and-Carry Arbitrage",
+        "asset_class": "Indexes",
+        "category": "arbitrage",
+        "legs": 2,
+        "description": "Long Spot Basket + Short Futures when Basis > Costs.",
+        "math": "F_fair = (S - D) * exp(r*T); IF F_actual > F_fair + costs",
+        "pseudocode": "IF F > F_fair: SHORT futures, BUY spot basket",
+        "execution_profile": {
+          "latency": "HFT",
+          "data_feed": "L2/L3",
+          "order_type": "IOC",
+          "position_sizing": "Leverage_Constrained",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS006",
+        "name": "VIX Futures Basis Trading",
+        "asset_class": "Volatility",
+        "category": "mean-reversion",
+        "legs": 1,
+        "description": "Short VIX Futures in Contango to capture roll yield.",
+        "math": "B_VIX = P_UX1 - P_VIX; Signal = Sign(B_VIX)",
+        "pseudocode": "IF B_VIX > 0: SHORT UX1. Hedge with mini-SPX",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Futures_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS007",
+        "name": "Carry Trade",
+        "asset_class": "FX",
+        "category": "directional / macro",
+        "legs": 2,
+        "description": "Short Low-Yield Currency + Long High-Yield Currency.",
+        "math": "Signal = Rank(Currencies, Forward_Discount)",
+        "pseudocode": "RANK by forward_discount; BUY top_quantile, SELL bottom_quantile",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "FX_Forwards",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS008",
+        "name": "Roll Yields",
+        "asset_class": "Commodities",
+        "category": "cross-sectional",
+        "legs": "N",
+        "description": "Long Backwardated Commodities, Short Contango Commodities.",
+        "math": "phi = P_1 / P_2; Signal = Rank(phi)",
+        "pseudocode": "RANK commodities BY phi; BUY highest, SELL lowest",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Futures_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS009",
+        "name": "Convertible Arbitrage",
+        "asset_class": "Convertibles",
+        "category": "relative-value",
+        "legs": 2,
+        "description": "Long Convertible Bond + Short (Delta * Stock).",
+        "math": "h = C * Delta; ArbSignal = (CB_market < CB_theoretical)",
+        "pseudocode": "BUY CB; SHORT h * Stock; REBALANCE Delta daily",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "L1/Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Delta_Neutral",
+          "venue": "Exchange/OTC"
+        }
+      },
+      {
+        "id": "TS010",
+        "name": "Municipal Bond Tax Arbitrage",
+        "asset_class": "Tax / Fixed Income",
+        "category": "arbitrage",
+        "legs": 2,
+        "description": "Short Cash (Loan) + Long Tax-Exempt Muni Bond.",
+        "math": "Return = r_long - r_short * (1 - tau)",
+        "pseudocode": "IF r_muni > r_loan * (1 - tau): BORROW cash, BUY muni",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Yield_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "Leverage_Constrained",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS011",
+        "name": "Covered Put",
+        "asset_class": "Options",
+        "category": "income / bearish",
+        "legs": 2,
+        "description": "Short Stock + Short Put. Neutral to bearish income.",
+        "math": "Payoff = min(S_T, K) - S_0 + C_premium",
+        "pseudocode": "IF short_stock: SELL OTM_PUT(K)",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS012",
+        "name": "Protective Put",
+        "asset_class": "Options",
+        "category": "hedging",
+        "legs": 2,
+        "description": "Long Stock + Long Put. Portfolio insurance.",
+        "math": "Payoff = S_T + max(K - S_T, 0) - P_premium",
+        "pseudocode": "IF holds_stock AND fear_of_crash: BUY OTM_PUT(K)",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS013",
+        "name": "Protective Call",
+        "asset_class": "Options",
+        "category": "hedging",
+        "legs": 2,
+        "description": "Short Stock + Long Call. Hedge against short squeeze.",
+        "math": "Payoff = -S_T + max(S_T - K, 0) - C_premium",
+        "pseudocode": "IF short_stock: BUY OTM_CALL(K)",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS014",
+        "name": "Bull Call Spread",
+        "asset_class": "Options",
+        "category": "directional / bullish",
+        "legs": 2,
+        "description": "Long Call(K1) + Short Call(K2), K1 < K2. Net debit.",
+        "math": "Max_Profit = K2 - K1 - D; Break_Even = K1 + D",
+        "pseudocode": "IF moderately_bullish: BUY_CALL(K1), SELL_CALL(K2)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS015",
+        "name": "Bull Put Spread",
+        "asset_class": "Options",
+        "category": "income / bullish",
+        "legs": 2,
+        "description": "Long Put(K1) + Short Put(K2), K1 < K2. Net credit.",
+        "math": "Max_Profit = C; Break_Even = K2 - C",
+        "pseudocode": "IF neutral_to_bullish: SELL_PUT(K2), BUY_PUT(K1)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS016",
+        "name": "Bear Call Spread",
+        "asset_class": "Options",
+        "category": "income / bearish",
+        "legs": 2,
+        "description": "Long Call(K1) + Short Call(K2), K1 > K2. Net credit.",
+        "math": "Max_Profit = C; Break_Even = K2 + C",
+        "pseudocode": "IF neutral_to_bearish: SELL_CALL(K2), BUY_CALL(K1)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS017",
+        "name": "Bear Put Spread",
+        "asset_class": "Options",
+        "category": "directional / bearish",
+        "legs": 2,
+        "description": "Long Put(K1) + Short Put(K2), K1 > K2. Net debit.",
+        "math": "Max_Profit = K1 - K2 - D; Break_Even = K1 - D",
+        "pseudocode": "IF moderately_bearish: BUY_PUT(K1), SELL_PUT(K2)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS018",
+        "name": "Long Synthetic Forward",
+        "asset_class": "Options",
+        "category": "directional / bullish",
+        "legs": 2,
+        "description": "Long Call(K) + Short Put(K), K = S_0. Replicates long stock.",
+        "math": "Payoff = S_T - K",
+        "pseudocode": "IF bullish AND capital_efficiency_needed: BUY_CALL(K), SELL_PUT(K)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS019",
+        "name": "Short Synthetic Forward",
+        "asset_class": "Options",
+        "category": "directional / bearish",
+        "legs": 2,
+        "description": "Long Put(K) + Short Call(K), K = S_0. Replicates short stock.",
+        "math": "Payoff = K - S_T",
+        "pseudocode": "IF bearish AND hard_to_borrow: BUY_PUT(K), SELL_CALL(K)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS020",
+        "name": "Long Combo",
+        "asset_class": "Options",
+        "category": "directional / bullish",
+        "legs": 2,
+        "description": "Long OTM Call(K1) + Short OTM Put(K2), K1 > K2. Zero-cost bullish.",
+        "math": "Payoff = max(S_T - K1, 0) - max(K2 - S_T, 0)",
+        "pseudocode": "IF strongly_bullish: BUY_CALL(K1), SELL_PUT(K2)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS021",
+        "name": "Bull Call Ladder",
+        "asset_class": "Options",
+        "category": "directional / bullish",
+        "legs": 3,
+        "description": "Long Call(K1) + Short Call(K2) + Short Call(K3), K1 < K2 < K3.",
+        "math": "Max_Profit at S_T = K2; Unlimited upside risk past K3",
+        "pseudocode": "IF moderately_bullish: BUY(K1), SELL(K2), SELL(K3)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS022",
+        "name": "Bull Put Ladder",
+        "asset_class": "Options",
+        "category": "directional / bearish-to-neutral",
+        "legs": 3,
+        "description": "Short Put(K1) + Long Put(K2) + Long Put(K3), K1 > K2 > K3.",
+        "math": "Max_Profit at S_T = K2; Loss zone below K3",
+        "pseudocode": "IF mildly_bearish: SELL(K1), BUY(K2), BUY(K3)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS023",
+        "name": "Bear Call Ladder",
+        "asset_class": "Options",
+        "category": "directional / breakout",
+        "legs": 3,
+        "description": "Short Call(K1) + Long Call(K2) + Long Call(K3), K1 < K2 < K3.",
+        "math": "Max_Loss at S_T = K2; Unlimited profit past K3",
+        "pseudocode": "IF breakout_bullish: SELL(K1), BUY(K2), BUY(K3)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS024",
+        "name": "Bear Put Ladder",
+        "asset_class": "Options",
+        "category": "directional / bullish-to-neutral",
+        "legs": 3,
+        "description": "Long Put(K1) + Short Put(K2) + Short Put(K3), K1 > K2 > K3.",
+        "math": "Max_Profit at S_T = K2; Unlimited downside risk past K3",
+        "pseudocode": "IF mildly_bearish: BUY(K1), SELL(K2), SELL(K3)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS025",
+        "name": "Calendar Call Spread",
+        "asset_class": "Options",
+        "category": "neutral / time-decay",
+        "legs": 2,
+        "description": "Long Call(K, T2) + Short Call(K, T1), T2 > T1. Profits from theta decay.",
+        "math": "Theta(T1) > Theta(T2)",
+        "pseudocode": "IF neutral AND IV_contango: BUY_CALL(K,T2), SELL_CALL(K,T1)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS026",
+        "name": "Calendar Put Spread",
+        "asset_class": "Options",
+        "category": "neutral / time-decay",
+        "legs": 2,
+        "description": "Long Put(K, T2) + Short Put(K, T1), T2 > T1.",
+        "math": "Theta(T1) > Theta(T2)",
+        "pseudocode": "IF neutral: BUY_PUT(K,T2), SELL_PUT(K,T1)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS027",
+        "name": "Diagonal Call Spread",
+        "asset_class": "Options",
+        "category": "directional / bullish",
+        "legs": 2,
+        "description": "Long Call(K1, T2) + Short Call(K2, T1), K1 < K2, T2 > T1.",
+        "math": "Combines vertical and calendar spread",
+        "pseudocode": "IF moderately_bullish: BUY_CALL(K1,T2), SELL_CALL(K2,T1)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS028",
+        "name": "Diagonal Put Spread",
+        "asset_class": "Options",
+        "category": "directional / bearish",
+        "legs": 2,
+        "description": "Long Put(K1, T2) + Short Put(K2, T1), K1 > K2, T2 > T1.",
+        "math": "Combines vertical and calendar spread",
+        "pseudocode": "IF moderately_bearish: BUY_PUT(K1,T2), SELL_PUT(K2,T1)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS029",
+        "name": "Long Straddle",
+        "asset_class": "Options",
+        "category": "volatility / non-directional",
+        "legs": 2,
+        "description": "Long Call(K) + Long Put(K), K = S_0. Long Gamma/Vega, Short Theta.",
+        "math": "Break_Even = K +/- D_total",
+        "pseudocode": "IF expected_move > D_total: BUY_CALL(K), BUY_PUT(K)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS030",
+        "name": "Long Strangle",
+        "asset_class": "Options",
+        "category": "volatility / non-directional",
+        "legs": 2,
+        "description": "Long Put(K1) + Long Call(K2), K1 < S_0 < K2. Cheaper than straddle.",
+        "math": "Break_Even = K2 + D, K1 - D",
+        "pseudocode": "IF expected_move > (K2-K1)/2 + D: BUY_PUT(K1), BUY_CALL(K2)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS031",
+        "name": "Short Straddle",
+        "asset_class": "Options",
+        "category": "neutral / short-vol",
+        "legs": 2,
+        "description": "Short Call(K) + Short Put(K). Short Gamma/Vega, Long Theta.",
+        "math": "Max_Profit = C_net if S_T == K",
+        "pseudocode": "IF pin_risk_neutral AND IV_rank > 80: SELL_CALL(K), SELL_PUT(K)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS032",
+        "name": "Short Strangle",
+        "asset_class": "Options",
+        "category": "neutral / short-vol",
+        "legs": 2,
+        "description": "Short Call(K1) + Short Put(K2), K1 > K2. Wider buffer than straddle.",
+        "math": "Max_Profit = C_net if K2 <= S_T <= K1",
+        "pseudocode": "IF range_bound: SELL_OTM_CALL(K1), SELL_OTM_PUT(K2)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS033",
+        "name": "Short Guts",
+        "asset_class": "Options",
+        "category": "neutral / short-vol",
+        "legs": 2,
+        "description": "Short ITM Call(K1) + Short ITM Put(K2). Max premium, high assignment risk.",
+        "math": "Max_Profit = C_net",
+        "pseudocode": "IF max_premium_needed: SELL_ITM_CALL(K1), SELL_ITM_PUT(K2)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS034",
+        "name": "Long Call Synthetic Straddle",
+        "asset_class": "Options",
+        "category": "volatility",
+        "legs": 2,
+        "description": "Short Stock + 2 * Long Call(K). Bypasses put skew/borrow issues.",
+        "math": "Payoff = -S_T + 2 * max(S_T - K, 0) - D",
+        "pseudocode": "IF put_skew_too_high: SHORT_STOCK, BUY_2x_CALL(K)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain/L1",
+          "order_type": "LIMIT",
+          "position_sizing": "Delta_Neutral",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS035",
+        "name": "Long Put Synthetic Straddle",
+        "asset_class": "Options",
+        "category": "volatility",
+        "legs": 2,
+        "description": "Long Stock + 2 * Long Put(K). Bypasses call skew.",
+        "math": "Payoff = S_T + 2 * max(K - S_T, 0) - D",
+        "pseudocode": "IF call_skew_too_high: BUY_STOCK, BUY_2x_PUT(K)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain/L1",
+          "order_type": "LIMIT",
+          "position_sizing": "Delta_Neutral",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS036",
+        "name": "Short Call Synthetic Straddle",
+        "asset_class": "Options",
+        "category": "neutral / short-vol",
+        "legs": 2,
+        "description": "Long Stock + 2 * Short Call(K).",
+        "math": "Payoff = S_T - 2 * max(S_T - K, 0) + C",
+        "pseudocode": "IF put_skew_too_high_to_sell: BUY_STOCK, SELL_2x_CALL(K)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain/L1",
+          "order_type": "LIMIT",
+          "position_sizing": "Delta_Neutral",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS037",
+        "name": "Short Put Synthetic Straddle",
+        "asset_class": "Options",
+        "category": "neutral / short-vol",
+        "legs": 2,
+        "description": "Short Stock + 2 * Short Put(K).",
+        "math": "Payoff = -S_T - 2 * max(K - S_T, 0) + C",
+        "pseudocode": "IF call_skew_too_high_to_sell: SHORT_STOCK, SELL_2x_PUT(K)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain/L1",
+          "order_type": "LIMIT",
+          "position_sizing": "Delta_Neutral",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS038",
+        "name": "Covered Short Straddle",
+        "asset_class": "Options",
+        "category": "bullish / income",
+        "legs": 3,
+        "description": "Long Stock + Short Call(K) + Short Put(K).",
+        "math": "Max_Profit = K - S_0 + C_net",
+        "pseudocode": "IF holds_stock AND bullish_neutral: SELL_CALL(K), SELL_PUT(K)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain/L1",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS039",
+        "name": "Covered Short Strangle",
+        "asset_class": "Options",
+        "category": "bullish / income",
+        "legs": 3,
+        "description": "Long Stock + Short Call(K1) + Short Put(K2), K1 > K2.",
+        "math": "Max_Profit = K1 - S_0 + C_net",
+        "pseudocode": "IF range_bound_bullish: SELL_OTM_CALL(K1), SELL_OTM_PUT(K2)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain/L1",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS040",
+        "name": "Strap",
+        "asset_class": "Options",
+        "category": "volatility / bullish-bias",
+        "legs": 3,
+        "description": "2 * Long Call(K) + Long Put(K). Bullish straddle.",
+        "math": "Payoff = 2 * max(S_T - K, 0) + max(K - S_T, 0) - D",
+        "pseudocode": "IF bullish_volatility: BUY_2x_CALL(K), BUY_PUT(K)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS041",
+        "name": "Strip",
+        "asset_class": "Options",
+        "category": "volatility / bearish-bias",
+        "legs": 3,
+        "description": "Long Call(K) + 2 * Long Put(K). Bearish straddle.",
+        "math": "Payoff = max(S_T - K, 0) + 2 * max(K - S_T, 0) - D",
+        "pseudocode": "IF bearish_volatility: BUY_CALL(K), BUY_2x_PUT(K)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS042",
+        "name": "Call Ratio Backspread",
+        "asset_class": "Options",
+        "category": "volatility / strongly bullish",
+        "legs": 2,
+        "description": "Short N_S Call(K1) + Long N_L Call(K2), N_L > N_S. E.g., 1x2.",
+        "math": "Max_Profit = Unlimited upside; Max_Loss at K2",
+        "pseudocode": "IF strongly_bullish_breakout: SELL_CALL(K1), BUY_2x_CALL(K2)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS043",
+        "name": "Put Ratio Backspread",
+        "asset_class": "Options",
+        "category": "volatility / strongly bearish",
+        "legs": 2,
+        "description": "Short N_S Put(K1) + Long N_L Put(K2), N_L > N_S.",
+        "math": "Max_Profit = Large downside; Max_Loss at K2",
+        "pseudocode": "IF strongly_bearish_crash: SELL_PUT(K1), BUY_2x_PUT(K2)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS046",
+        "name": "Long Call Butterfly",
+        "asset_class": "Options",
+        "category": "neutral / low vol",
+        "legs": 4,
+        "description": "Long Call(K1) - 2*Call(K2) + Long Call(K3). Equidistant strikes.",
+        "math": "Max_Profit = κ - D at S_T = K2",
+        "pseudocode": "IF neutral_low_vol: BUY(K1), SELL_2x(K2), BUY(K3)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS047",
+        "name": "Long Put Butterfly",
+        "asset_class": "Options",
+        "category": "neutral / low vol",
+        "legs": 4,
+        "description": "Long Put(K1) - 2*Put(K2) + Long Put(K3).",
+        "math": "Max_Profit = κ - D at S_T = K2",
+        "pseudocode": "IF neutral_low_vol: BUY(K1), SELL_2x(K2), BUY(K3)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS048",
+        "name": "Short Call Butterfly",
+        "asset_class": "Options",
+        "category": "volatility / high vol",
+        "legs": 4,
+        "description": "Short Call(K1) + 2*Call(K2) - Short Call(K3).",
+        "math": "Max_Profit = C if S_T <= K1 or S_T >= K3",
+        "pseudocode": "IF high_volatility: SELL(K1), BUY_2x(K2), SELL(K3)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS049",
+        "name": "Short Put Butterfly",
+        "asset_class": "Options",
+        "category": "volatility / high vol",
+        "legs": 4,
+        "description": "Short Put(K1) + 2*Put(K2) - Short Put(K3).",
+        "math": "Max_Profit = C if S_T <= K1 or S_T >= K3",
+        "pseudocode": "IF high_volatility: SELL(K1), BUY_2x(K2), SELL(K3)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS050",
+        "name": "Long Iron Butterfly",
+        "asset_class": "Options",
+        "category": "neutral / income",
+        "legs": 4,
+        "description": "Long Put(K1) - Put(K2) - Call(K2) + Long Call(K3). Net credit.",
+        "math": "Max_Profit = C at S_T = K2",
+        "pseudocode": "IF neutral_low_vol: BUY(K1), SELL(K2), SELL(K2), BUY(K3)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS051",
+        "name": "Short Iron Butterfly",
+        "asset_class": "Options",
+        "category": "volatility / high vol",
+        "legs": 4,
+        "description": "Short Put(K1) + Put(K2) + Call(K2) - Short Call(K3). Net debit.",
+        "math": "Max_Profit = κ - D if S_T <= K1 or S_T >= K3",
+        "pseudocode": "IF high_volatility: SELL(K1), BUY(K2), BUY(K2), SELL(K3)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS052",
+        "name": "Long Call Condor",
+        "asset_class": "Options",
+        "category": "neutral / low vol",
+        "legs": 4,
+        "description": "Long Call(K1) - Call(K2) - Call(K3) + Long Call(K4). Wider butterfly.",
+        "math": "Max_Profit = κ - D if K2 <= S_T <= K3",
+        "pseudocode": "IF neutral_low_vol: BUY(K1), SELL(K2), SELL(K3), BUY(K4)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS053",
+        "name": "Long Put Condor",
+        "asset_class": "Options",
+        "category": "neutral / low vol",
+        "legs": 4,
+        "description": "Long Put(K1) - Put(K2) - Put(K3) + Long Put(K4).",
+        "math": "Max_Profit = κ - D if K2 <= S_T <= K3",
+        "pseudocode": "IF neutral_low_vol: BUY(K1), SELL(K2), SELL(K3), BUY(K4)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS054",
+        "name": "Short Call Condor",
+        "asset_class": "Options",
+        "category": "volatility / high vol",
+        "legs": 4,
+        "description": "Short Call(K1) + Call(K2) + Call(K3) - Short Call(K4).",
+        "math": "Max_Profit = C if S_T <= K1 or S_T >= K4",
+        "pseudocode": "IF high_volatility: SELL(K1), BUY(K2), BUY(K3), SELL(K4)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS055",
+        "name": "Short Put Condor",
+        "asset_class": "Options",
+        "category": "volatility / high vol",
+        "legs": 4,
+        "description": "Short Put(K1) + Put(K2) + Put(K3) - Short Put(K4).",
+        "math": "Max_Profit = C if S_T <= K1 or S_T >= K4",
+        "pseudocode": "IF high_volatility: SELL(K1), BUY(K2), BUY(K3), SELL(K4)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS056",
+        "name": "Long Iron Condor",
+        "asset_class": "Options",
+        "category": "neutral / income",
+        "legs": 4,
+        "description": "Long Put(K1) - Put(K2) - Call(K3) + Long Call(K4). Net credit.",
+        "math": "Max_Profit = C if K2 <= S_T <= K3",
+        "pseudocode": "IF neutral_low_vol: BUY(K1), SELL(K2), SELL(K3), BUY(K4)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS057",
+        "name": "Short Iron Condor",
+        "asset_class": "Options",
+        "category": "volatility / high vol",
+        "legs": 4,
+        "description": "Short Put(K1) + Put(K2) + Call(K3) - Short Call(K4). Net debit.",
+        "math": "Max_Profit = κ - D if S_T <= K1 or S_T >= K4",
+        "pseudocode": "IF high_volatility: SELL(K1), BUY(K2), BUY(K3), SELL(K4)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS058",
+        "name": "Long Box",
+        "asset_class": "Options",
+        "category": "arbitrage",
+        "legs": 4,
+        "description": "Long Put(K1) - Put(K2) + Long Call(K2) - Call(K1). Risk-free arb.",
+        "math": "Payoff = K1 - K2 (Constant)",
+        "pseudocode": "IF (K1 - K2) > Net_Debit: BUY_PUT(K1), SELL_PUT(K2), BUY_CALL(K2), SELL_CALL(K1)",
+        "execution_profile": {
+          "latency": "HFT",
+          "data_feed": "Options_Chain",
+          "order_type": "IOC",
+          "position_sizing": "ArbSizing",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS059",
+        "name": "Collar",
+        "asset_class": "Options",
+        "category": "hedging",
+        "legs": 3,
+        "description": "Long Stock + Long Put(K1) - Call(K2). Zero-cost hedge.",
+        "math": "Max_Profit = K2 - S_0; Max_Loss = S_0 - K1",
+        "pseudocode": "IF holds_stock AND fear_of_crash: BUY_PUT(K1), SELL_CALL(K2)",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Options_Chain/L1",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS060",
+        "name": "Bullish Short Seagull",
+        "asset_class": "Options",
+        "category": "directional / bullish",
+        "legs": 3,
+        "description": "Short Put(K1) + Long Call(K2) - Call(K3). Zero-cost breakout.",
+        "math": "Max_Profit = K3 - K2; Max_Loss = K1 (downside)",
+        "pseudocode": "IF bullish AND zero_cost: SELL_PUT(K1), BUY_CALL(K2), SELL_CALL(K3)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS061",
+        "name": "Price-Momentum (Cross-Sectional)",
+        "asset_class": "Stocks",
+        "category": "directional",
+        "legs": "N",
+        "description": "Long Top Decile, Short Bottom Decile by 12m-1m return.",
+        "math": "Signal = Rank(R_cum_i, 12m_skip_1m)",
+        "pseudocode": "RANK BY R_cum; BUY top_10%; SHORT bottom_10%",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "OHLCV",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS062",
+        "name": "Earnings-Momentum",
+        "asset_class": "Stocks",
+        "category": "directional",
+        "legs": "N",
+        "description": "Long Top Decile by SUE (Standardized Unexpected Earnings).",
+        "math": "SUE = UE / σ_UE; Signal = Rank(SUE)",
+        "pseudocode": "CALCULATE SUE; RANK DESC; BUY top_10%; SHORT bottom_10%",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Alternative/Fundamental",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS063",
+        "name": "Value",
+        "asset_class": "Stocks",
+        "category": "cross-sectional",
+        "legs": "N",
+        "description": "Long Top Decile by Book-to-Price (B/P), Short Bottom.",
+        "math": "Signal = Rank(B/P)",
+        "pseudocode": "CALCULATE B/P; RANK DESC; BUY top_10%; SHORT bottom_10%",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Fundamental",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS064",
+        "name": "Low-Volatility Anomaly",
+        "asset_class": "Stocks",
+        "category": "cross-sectional",
+        "legs": "N",
+        "description": "Long Bottom Decile by Volatility, Short Top Decile.",
+        "math": "Signal = Rank(σ_i, ascending=True)",
+        "pseudocode": "CALCULATE 6m vol; RANK ASC; BUY bottom_10%; SHORT top_10%",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "OHLCV",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS065",
+        "name": "Implied Volatility",
+        "asset_class": "Stocks",
+        "category": "cross-sectional",
+        "legs": "N",
+        "description": "Long stocks with rising Call IV, Short rising Put IV.",
+        "math": "Signal = Rank(ΔIV_Call - ΔIV_Put)",
+        "pseudocode": "CALCULATE 1m IV change; RANK DESC; BUY top_10%; SHORT bottom_10%",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS066",
+        "name": "Multifactor Portfolio",
+        "asset_class": "Stocks",
+        "category": "cross-sectional",
+        "legs": "N",
+        "description": "Combine Value, Momentum, Low-Vol into single portfolio.",
+        "math": "s_i = (Rank(Value) + Rank(Mom) + Rank(LowVol)) / 3",
+        "pseudocode": "AVERAGE ranks; BUY top_10%; SHORT bottom_10%",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "OHLCV/Fundamental",
+          "order_type": "VWAP",
+          "position_sizing": "Risk_Parity",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS067",
+        "name": "Residual Momentum",
+        "asset_class": "Stocks",
+        "category": "cross-sectional",
+        "legs": "N",
+        "description": "Momentum on residuals of Fama-French 3-factor regression.",
+        "math": "R_res = Mean(ϵ_i) over 12m; Signal = Rank(R_res)",
+        "pseudocode": "REGRESS on MKT, SMB, HML; RANK residuals; BUY top_10%; SHORT bottom_10%",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "OHLCV/Factor",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS068",
+        "name": "Pairs Trading (StatArb)",
+        "asset_class": "Stocks",
+        "category": "market-neutral",
+        "legs": 2,
+        "description": "Long/Short cointegrated spread when Z-score > 2.0.",
+        "math": "Z = (R'_A - R'_B) / StdDev",
+        "pseudocode": "IF |Z| > 2.0: SHORT rich, BUY cheap. EXIT AT Z == 0",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "L1/OHLCV",
+          "order_type": "LIMIT",
+          "position_sizing": "Dollar_Neutral",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS069",
+        "name": "Mean-Reversion—Single Cluster",
+        "asset_class": "Stocks",
+        "category": "market-neutral",
+        "legs": "N",
+        "description": "Short intra-sector leaders, buy laggards.",
+        "math": "R'_i = R_i - R_cluster; Weight w_i ∝ -R'_i",
+        "pseudocode": "GROUP by industry; BUY negative R'_i, SHORT positive R'_i",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "OHLCV",
+          "order_type": "LIMIT",
+          "position_sizing": "Dollar_Neutral",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS070",
+        "name": "Mean-Reversion—Multiple Clusters",
+        "asset_class": "Stocks",
+        "category": "market-neutral",
+        "legs": "N",
+        "description": "Cluster MR across all sectors simultaneously.",
+        "math": "ϵ_i = R_i - R_cluster_A; Weight w_i ∝ -ϵ_i",
+        "pseudocode": "REGRESS returns on industry matrix; BUY negative ϵ, SHORT positive ϵ",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "OHLCV",
+          "order_type": "LIMIT",
+          "position_sizing": "Dollar_Neutral",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS071",
+        "name": "Mean-Reversion—Weighted Regression",
+        "asset_class": "Stocks",
+        "category": "market-neutral",
+        "legs": "N",
+        "description": "Cluster MR weighted by inverse variance to reduce noise.",
+        "math": "Weights z_i = 1 / σ_i^2; Minimize Σ z_i * ε_i^2",
+        "pseudocode": "REGRESS with inverse variance weights; BUY negative ε, SHORT positive ε",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "OHLCV",
+          "order_type": "LIMIT",
+          "position_sizing": "Dollar_Neutral",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS072",
+        "name": "Single Moving Average",
+        "asset_class": "Stocks",
+        "category": "trend-following",
+        "legs": 1,
+        "description": "Buy if P > SMA(T), Sell if P < SMA(T).",
+        "math": "SMA(T) = (1/T) * Σ P(t-i)",
+        "pseudocode": "IF P(t) > SMA(T): BUY. IF P(t) < SMA(T): SELL",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "OHLCV",
+          "order_type": "MARKET/LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS073",
+        "name": "Two Moving Averages",
+        "asset_class": "Stocks",
+        "category": "trend-following",
+        "legs": 1,
+        "description": "Golden Cross / Death Cross (e.g., 50 SMA vs 200 SMA).",
+        "math": "Signal = Sign(MA(T1) - MA(T2))",
+        "pseudocode": "IF MA(50) > MA(200): BUY. IF MA(50) < MA(200): SELL",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "OHLCV",
+          "order_type": "MARKET/LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS074",
+        "name": "Three Moving Averages",
+        "asset_class": "Stocks",
+        "category": "trend-following",
+        "legs": 1,
+        "description": "Buy if MA(5) > MA(20) > MA(50).",
+        "math": "Alignment = MA(T1) > MA(T2) > MA(T3)",
+        "pseudocode": "IF MA(5) > MA(20) AND MA(20) > MA(50): BUY",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "OHLCV",
+          "order_type": "MARKET/LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS075",
+        "name": "Support and Resistance",
+        "asset_class": "Stocks",
+        "category": "mean-reversion / breakout",
+        "legs": 1,
+        "description": "Buy at Support, Sell at Resistance, or trade breakouts.",
+        "math": "Pivot = (H + L + C) / 3; S1 = 2*P - H; R1 = 2*P - L",
+        "pseudocode": "IF P <= S1 AND RSI < 30: BUY. IF P >= R1 AND Vol > Avg: BUY",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "OHLCV/L1",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS076",
+        "name": "Channel",
+        "asset_class": "Stocks",
+        "category": "mean-reversion / trend",
+        "legs": 1,
+        "description": "Donchian/Bollinger Bands. Buy lower band, sell upper band.",
+        "math": "Upper = Max(High, T); Lower = Min(Low, T)",
+        "pseudocode": "IF P <= Lower: BUY. IF P >= Upper: SELL",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "OHLCV",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS077",
+        "name": "Event-Driven—M&A",
+        "asset_class": "Stocks",
+        "category": "event-driven",
+        "legs": 1,
+        "description": "Buy Target, Short Acquirer (if stock deal) to capture spread.",
+        "math": "Spread = Acquisition_Price - Current_Price",
+        "pseudocode": "IF deal_announced: BUY target. IF stock_deal: SHORT (ratio * acquirer)",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Alternative/News",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS078",
+        "name": "Machine Learning—Single-Stock KNN",
+        "asset_class": "Stocks",
+        "category": "machine learning",
+        "legs": 1,
+        "description": "Predict next-day return using K-Nearest Neighbors on feature vector.",
+        "math": "Y_pred = (1/K) * Σ Y(t'_k) for min Euclidean distance",
+        "pseudocode": "COMPUTE X(t); FIND K nearest historical X; IF mean(Y) > threshold: BUY",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "OHLCV/Alternative",
+          "order_type": "LIMIT",
+          "position_sizing": "Kelly_Criterion",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS079",
+        "name": "Statistical Arbitrage—Optimization",
+        "asset_class": "Stocks",
+        "category": "market-neutral",
+        "legs": "N",
+        "description": "Mean-variance optimization for dollar-neutral portfolio.",
+        "math": "Maximize w^T * μ subject to w^T * 1 = 0",
+        "pseudocode": "SOLVE for weights w that maximize Sharpe subject to sum(w) == 0",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "OHLCV/Factor",
+          "order_type": "TWAP",
+          "position_sizing": "Risk_Parity",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS080",
+        "name": "Market-Making",
+        "asset_class": "Stocks",
+        "category": "market-neutral / HFT",
+        "legs": 2,
+        "description": "Quote bid/ask to capture spread, manage inventory risk.",
+        "math": "Bid = m - s/2 - f(q); Ask = m + s/2 - f(q)",
+        "pseudocode": "WHILE market_open: POST limit buy/sell adjusting for inventory q",
+        "execution_profile": {
+          "latency": "HFT",
+          "data_feed": "L3",
+          "order_type": "LIMIT",
+          "position_sizing": "Inventory_Constrained",
+          "venue": "Exchange/ATS"
+        }
+      },
+      {
+        "id": "TS081",
+        "name": "Alpha Combos",
+        "asset_class": "Stocks / Quant",
+        "category": "machine learning",
+        "legs": "N",
+        "description": "Combine 100k+ faint ML alphas into mega-alpha portfolio.",
+        "math": "w_i = eta * epsilon_i / sigma_i",
+        "pseudocode": "CROSS-SECTIONALLY DEMEAN alphas; REGRESS forward returns; SET weights",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Alternative/Factor",
+          "order_type": "TWAP",
+          "position_sizing": "Risk_Parity",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS082",
+        "name": "Sector Momentum Rotation",
+        "asset_class": "ETFs",
+        "category": "directional",
+        "legs": "N",
+        "description": "Overweight outperforming sector ETFs, underweight laggards.",
+        "math": "Signal = Rank(R_i^cum)",
+        "pseudocode": "CALCULATE 12m return for ETFs; BUY top_10%; SHORT bottom_10%",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "OHLCV",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS083",
+        "name": "Sector Momentum Rotation with MA Filter",
+        "asset_class": "ETFs",
+        "category": "directional",
+        "legs": "N",
+        "description": "Sector momentum + Price > 200-day SMA filter.",
+        "math": "Signal = Rank(R_i^cum) AND (P_i > SMA(200))",
+        "pseudocode": "FILTER OUT ETFs where Price < 200-SMA; BUY top decile",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "OHLCV",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS084",
+        "name": "Dual-Momentum Sector Rotation",
+        "asset_class": "ETFs",
+        "category": "directional",
+        "legs": "N",
+        "description": "Relative sector momentum + Absolute market trend filter.",
+        "math": "IF P_SPY > SMA(200)_SPY: Top_Sector ELSE Treasury",
+        "pseudocode": "IF S&P 500 > 200-SMA: BUY top sector ELSE MOVE to Bonds/Gold",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "OHLCV",
+          "order_type": "VWAP",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS085",
+        "name": "Alpha Rotation",
+        "asset_class": "ETFs",
+        "category": "cross-sectional",
+        "legs": "N",
+        "description": "Rank ETFs by Jensen's Alpha (FF3 regression intercept).",
+        "math": "Signal = Rank(Intercept(R_i ~ MKT, SMB, HML))",
+        "pseudocode": "REGRESS ETF returns on FF3; RANK BY alpha; BUY top_10%",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "OHLCV/Factor",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS086",
+        "name": "R-squared",
+        "asset_class": "ETFs",
+        "category": "cross-sectional",
+        "legs": "N",
+        "description": "Overweight ETFs with high Alpha and low R-squared (high selectivity).",
+        "math": "Selectivity = 1 - R^2; Signal = Rank(1 - R^2) AND Rank(alpha)",
+        "pseudocode": "SORT into 5x5 matrix (R^2 vs Alpha); BUY (Low R^2, High Alpha)",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "OHLCV/Factor",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS087",
+        "name": "Mean-reversion (ETF IBS)",
+        "asset_class": "ETFs",
+        "category": "mean-reversion",
+        "legs": "N",
+        "description": "Buy ETFs with IBS near 0, sell near 1. Overnight hold.",
+        "math": "IBS = (Close - Low) / (High - Low)",
+        "pseudocode": "CALCULATE daily IBS; BUY bottom_10%; SHORT top_10%; EXIT next day open",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "OHLCV",
+          "order_type": "MARKET",
+          "position_sizing": "Dollar_Neutral",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS088",
+        "name": "Leveraged ETFs (LETFs)",
+        "asset_class": "ETFs",
+        "category": "structural arbitrage",
+        "legs": 2,
+        "description": "Short 2x LETF + Short 2x Inverse LETF. Long Treasuries. Capture decay.",
+        "math": "Expected_Return = RiskFree + Volatility_Decay",
+        "pseudocode": "SHORT 2x Bull, SHORT 2x Bear; INVEST proceeds in T-Bills",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "OHLCV",
+          "order_type": "VWAP",
+          "position_sizing": "Leverage_Constrained",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS089",
+        "name": "Multi-asset Trend Following",
+        "asset_class": "ETFs / Multi-Asset",
+        "category": "trend-following",
+        "legs": "N",
+        "description": "Long global ETFs with positive momentum, weighted by inverse vol.",
+        "math": "w_i ∝ R_i^cum / sigma_i^2",
+        "pseudocode": "FILTER R^cum > 0 AND P > 200-SMA; ASSIGN weights; NORMALIZE to 1",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "OHLCV",
+          "order_type": "VWAP",
+          "position_sizing": "Risk_Parity",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS090",
+        "name": "Bullets",
+        "asset_class": "Fixed Income",
+        "category": "yield curve",
+        "legs": "N",
+        "description": "Portfolio of bonds all maturing at exact same target T.",
+        "math": "Duration ≈ T",
+        "pseudocode": "IF outlook == 'rates_fall': SELECT T = 10-30y; BUY bonds maturing at T",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Yield_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS091",
+        "name": "Barbells",
+        "asset_class": "Fixed Income",
+        "category": "yield curve",
+        "legs": 2,
+        "description": "Short-term + Long-term bonds. Matches bullet duration, higher convexity.",
+        "math": "w1*D1 + w2*D2 = Target_D",
+        "pseudocode": "SOLVE w1, w2 FOR Target_D; BUY w1 at T1, w2 at T2",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Yield_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "Risk_Parity",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS092",
+        "name": "Ladders",
+        "asset_class": "Fixed Income",
+        "category": "yield curve",
+        "legs": "N",
+        "description": "Equal capital in equidistant maturities. Roll down ladder.",
+        "math": "T_avg = (1/n) * Σ Ti",
+        "pseudocode": "FOR i = 1 to n: BUY Bond(Ti) weight 1/n; ROLL matured bonds",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Yield_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS093",
+        "name": "Bond Immunization",
+        "asset_class": "Fixed Income",
+        "category": "liability-driven",
+        "legs": "N",
+        "description": "Match portfolio duration to liability horizon.",
+        "math": "D_portfolio = T_liability",
+        "pseudocode": "SELECT bonds such that Portfolio_Duration == Liability_Maturity",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Yield_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "Liability_Matching",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS094",
+        "name": "Dollar-Duration-Neutral Butterfly",
+        "asset_class": "Fixed Income",
+        "category": "yield curve",
+        "legs": 3,
+        "description": "Long T1, Short T2, Long T3. Neutral to parallel shifts.",
+        "math": "P1*D1 + P3*D3 = P2*D2",
+        "pseudocode": "SOLVE P1, P3 via P2 such that P1+P3=P2 AND DD_neutral",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Yield_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "DD_Neutral",
+          "venue": "OTC/Exchange"
+        }
+      },
+      {
+        "id": "TS095",
+        "name": "Fifty-Fifty Butterfly",
+        "asset_class": "Fixed Income",
+        "category": "yield curve",
+        "legs": 3,
+        "description": "Butterfly where P1*D1 = P3*D3. Symmetric wings.",
+        "math": "P1*D1 = P3*D3",
+        "pseudocode": "SET P1*D1 = P3*D3; SOLVE for P2",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Yield_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "DD_Neutral",
+          "venue": "OTC/Exchange"
+        }
+      },
+      {
+        "id": "TS096",
+        "name": "Regression-Weighted Butterfly",
+        "asset_class": "Fixed Income",
+        "category": "yield curve",
+        "legs": 3,
+        "description": "Butterfly weighted by historical regression beta of spread changes.",
+        "math": "P1*D1 = β * P3*D3",
+        "pseudocode": "RUN regression of 2s5s on 5s10s to get β; SET P1*D1 = β * P3*D3",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Yield_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "DD_Neutral",
+          "venue": "OTC/Exchange"
+        }
+      },
+      {
+        "id": "TS097",
+        "name": "Maturity-Weighted Butterfly",
+        "asset_class": "Fixed Income",
+        "category": "yield curve",
+        "legs": 3,
+        "description": "Butterfly where β is derived deterministically from maturities.",
+        "math": "β = f(T1, T2, T3)",
+        "pseudocode": "CALCULATE β based on T1, T2, T3; SET P1*D1 = β * P3*D3",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Yield_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "DD_Neutral",
+          "venue": "OTC/Exchange"
+        }
+      },
+      {
+        "id": "TS098",
+        "name": "Low-Risk Factor",
+        "asset_class": "Fixed Income",
+        "category": "factor-investing",
+        "legs": "N",
+        "description": "Long bottom decile by maturity within high-quality credit.",
+        "math": "Signal = Rank(Maturity_i, ascending=True)",
+        "pseudocode": "FILTER by IG; RANK BY Maturity ASC; BUY bottom_10%",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Fundamental/Yield",
+          "order_type": "LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS099",
+        "name": "Value Factor",
+        "asset_class": "Fixed Income",
+        "category": "factor-investing",
+        "legs": "N",
+        "description": "Long bonds cheap relative to theoretical spread from rating/maturity.",
+        "math": "V_i = ε_i / S*_i; Signal = Rank(V_i)",
+        "pseudocode": "REGRESS Spread on Rating/Maturity; BUY top_10% by V",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Fundamental/Yield",
+          "order_type": "LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS100",
+        "name": "Carry Factor",
+        "asset_class": "Fixed Income",
+        "category": "factor-investing",
+        "legs": "N",
+        "description": "Long top decile by carry (yield + roll-down return).",
+        "math": "Carry = Yield*Δt + ModD * ΔR_curve",
+        "pseudocode": "CALCULATE Carry; RANK DESC; BUY top_10%",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Yield_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS101",
+        "name": "Rolling Down the Yield Curve",
+        "asset_class": "Fixed Income",
+        "category": "yield curve",
+        "legs": 1,
+        "description": "Buy bonds in steepest part of curve, hold as they age.",
+        "math": "C_roll ≈ ModD * ΔR_curve",
+        "pseudocode": "BUY bonds in steepest segment; HOLD as they approach maturity",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Yield_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS102",
+        "name": "Yield Curve Spread",
+        "asset_class": "Fixed Income",
+        "category": "yield curve",
+        "legs": 2,
+        "description": "Flattener (Short Front, Long Back) or Steepener.",
+        "math": "DollarDur_Front == DollarDur_Back",
+        "pseudocode": "IF rates_rise: SELL short-m, BUY long-m (Flattener)",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Yield_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "DD_Neutral",
+          "venue": "OTC/Exchange"
+        }
+      },
+      {
+        "id": "TS103",
+        "name": "CDS Basis Arbitrage",
+        "asset_class": "Fixed Income / Credit",
+        "category": "arbitrage",
+        "legs": 2,
+        "description": "Long Bond + Long CDS if Basis < 0.",
+        "math": "Basis = CDS_Spread - Bond_Yield_Spread",
+        "pseudocode": "IF Basis < -Threshold: BUY Cash_Bond, BUY CDS_Protection",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "CDS/Bond",
+          "order_type": "LIMIT",
+          "position_sizing": "ArbSizing",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS104",
+        "name": "Swap-Spread Arbitrage",
+        "asset_class": "Fixed Income",
+        "category": "arbitrage",
+        "legs": 2,
+        "description": "Long Swap + Short Treasury (or vice versa).",
+        "math": "Swap_Spread = r_swap - r_Treasury",
+        "pseudocode": "IF Swap_Spread too wide: RECEIVE Fixed Swap, SHORT Treasury",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Swap/Treasury",
+          "order_type": "LIMIT",
+          "position_sizing": "DD_Neutral",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS105",
+        "name": "Cash-and-carry Arbitrage (Indexes)",
+        "asset_class": "Indexes",
+        "category": "arbitrage",
+        "legs": 2,
+        "description": "Long Spot Basket + Short Index Futures.",
+        "math": "F_fair = (S - D) * exp(r*T)",
+        "pseudocode": "IF F > F_fair + costs: SHORT futures, BUY spot basket",
+        "execution_profile": {
+          "latency": "HFT",
+          "data_feed": "L2/L3",
+          "order_type": "IOC",
+          "position_sizing": "ArbSizing",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS106",
+        "name": "Dispersion Trading in Equity Indexes",
+        "asset_class": "Indexes / Vol",
+        "category": "volatility",
+        "legs": "N+1",
+        "description": "Short Index Straddle + Long Single-Stock Straddles.",
+        "math": "σ_I = sqrt( Σ w_i * w_j * σ_i * σ_j * ρ_ij )",
+        "pseudocode": "IF Index_IV > Theoretical: SELL index_straddle, BUY constituent_straddles",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Delta_Neutral",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS107",
+        "name": "Dispersion Trading: Subset Portfolio",
+        "asset_class": "Indexes / Vol",
+        "category": "volatility",
+        "legs": "N*+1",
+        "description": "Dispersion using PCA to filter noise and trade top N* stocks.",
+        "math": "Select top N* stocks with lowest specific risk ξ_i^2",
+        "pseudocode": "COMPUTE PCA; SELECT top N* stocks; SELL index, BUY subset",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Delta_Neutral",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS108",
+        "name": "Intraday Arbitrage Between Index ETFs",
+        "asset_class": "Indexes / ETFs",
+        "category": "arbitrage / HFT",
+        "legs": 2,
+        "description": "Exploit ephemeral mispricings between SPY and IVV.",
+        "math": "IF (P1_Bid / P2_Ask > κ)",
+        "pseudocode": "IF P1_Bid > P2_Ask * κ: SELL ETF1, BUY ETF2 simultaneously",
+        "execution_profile": {
+          "latency": "HFT",
+          "data_feed": "L2/L3",
+          "order_type": "IOC",
+          "position_sizing": "ArbSizing",
+          "venue": "Exchange/ATS"
+        }
+      },
+      {
+        "id": "TS109",
+        "name": "Index Volatility Targeting",
+        "asset_class": "Indexes / Multi-Asset",
+        "category": "risk-management",
+        "legs": 2,
+        "description": "Dynamic allocation between Index and T-Bills to target constant vol.",
+        "math": "w = σ_target / σ_realized",
+        "pseudocode": "SET Index_Weight = σ_target / σ(t); REBALANCE weekly/monthly",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "OHLCV/Options",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS110",
+        "name": "VIX Futures Basis Trading",
+        "asset_class": "Volatility",
+        "category": "mean-reversion",
+        "legs": 1,
+        "description": "Short VIX Futures in Contango to capture roll yield.",
+        "math": "B_VIX = P_UX1 - P_VIX",
+        "pseudocode": "IF B_VIX > 0: SHORT UX1. Hedge with mini-SPX",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Futures_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS111",
+        "name": "Volatility Carry with Two ETNs",
+        "asset_class": "Volatility",
+        "category": "structural-arbitrage",
+        "legs": 2,
+        "description": "Short VXX + Long (h * VXZ). Capture differential decay.",
+        "math": "h = Cov(R_VXX, R_VXZ) / Var(R_VXZ)",
+        "pseudocode": "SHORT 1 unit VXX; LONG h units VXZ; REBALANCE monthly",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "ETF_OHLCV",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS112",
+        "name": "Volatility Risk Premium",
+        "asset_class": "Volatility / Indexes",
+        "category": "short-vol",
+        "legs": 1,
+        "description": "Short ATM Straddle on SPX when VIX > RV.",
+        "math": "Spread = VIX - RV",
+        "pseudocode": "IF VIX > 21-day RV: SELL ATM_STRADDLE",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS113",
+        "name": "Volatility Risk Premium with Gamma Hedging",
+        "asset_class": "Volatility / Indexes",
+        "category": "delta-neutral",
+        "legs": 2,
+        "description": "Short Straddle + Dynamic Delta Hedge (Gamma Scalping).",
+        "math": "Δ_portfolio = Δ_straddle + Δ_hedge = 0",
+        "pseudocode": "SELL ATM_STRADDLE; IF Delta != 0: BUY/SELL underlying to reset",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain/L1",
+          "order_type": "LIMIT/MARKET",
+          "position_sizing": "Delta_Neutral",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS114",
+        "name": "Volatility Skew—Long Risk Reversal",
+        "asset_class": "Volatility / Equities",
+        "category": "skew-premium",
+        "legs": 2,
+        "description": "Long OTM Call + Short OTM Put. Zero-cost skew trade.",
+        "math": "IV_put(K_put) > IV_call(K_call)",
+        "pseudocode": "IF Put_Skew historically high: BUY OTM_CALL, SELL OTM_PUT",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS115",
+        "name": "Volatility Trading with Variance Swaps",
+        "asset_class": "Volatility / OTC",
+        "category": "directional",
+        "legs": 1,
+        "description": "Long/Short Variance Swap for pure vol exposure.",
+        "math": "P(T) = N * (Realized_Variance - K_var)",
+        "pseudocode": "IF IV < Forecasted_RV: BUY Variance Swap",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Options_Chain/OTC",
+          "order_type": "OTC_Contract",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS116",
+        "name": "FX Moving Averages with HP Filter",
+        "asset_class": "FX",
+        "category": "trend-following",
+        "legs": 1,
+        "description": "Dual MA crossover on Hodrick-Prescott filtered FX rate.",
+        "math": "HP Filter minimizes short-term fluctuations",
+        "pseudocode": "APPLY HP Filter; CALCULATE MA(10) and MA(50); BUY if MA10 > MA50",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "FX_Spot",
+          "order_type": "LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS117",
+        "name": "FX Carry Trade",
+        "asset_class": "FX",
+        "category": "directional / macro",
+        "legs": 2,
+        "description": "Short Low-Yield Currency + Long High-Yield Currency.",
+        "math": "R = (r_foreign - r_domestic) + ΔS",
+        "pseudocode": "BORROW low-yield, BUY high-yield; HOLD unhedged",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "FX_Forwards",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS118",
+        "name": "FX High-minus-low Carry",
+        "asset_class": "FX",
+        "category": "cross-sectional",
+        "legs": "N",
+        "description": "Long Top Quantile by Forward Discount, Short Bottom.",
+        "math": "Signal = Rank( ln(F/S) )",
+        "pseudocode": "CALCULATE 1m forward discount; RANK DESC; BUY top_33%; SELL bottom_33%",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "FX_Forwards",
+          "order_type": "LIMIT",
+          "position_sizing": "Dollar_Neutral",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS119",
+        "name": "FX Dollar Carry Trade",
+        "asset_class": "FX",
+        "category": "macro-regime",
+        "legs": "N",
+        "description": "Long/Short basket of FX vs USD based on avg forward discount.",
+        "math": "D_avg = (1/N) * Σ D_i; IF D_avg > 0: Long FX / Short USD",
+        "pseudocode": "AVERAGE forward discounts vs USD; IF > 0: BUY basket, SELL USD",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "FX_Forwards",
+          "order_type": "LIMIT",
+          "position_sizing": "Risk_Parity",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS120",
+        "name": "FX Momentum and Carry Combo",
+        "asset_class": "FX",
+        "category": "multi-factor",
+        "legs": "N",
+        "description": "Min-variance weighted portfolio of FX Momentum and Carry.",
+        "math": "w = Σ^-1 * 1 / (1^T * Σ^-1 * 1)",
+        "pseudocode": "COMPUTE covariance of Carry & Mom; SOLVE min-var weights; COMBINE",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "FX_Forwards/OHLCV",
+          "order_type": "LIMIT",
+          "position_sizing": "Risk_Parity",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS121",
+        "name": "FX Triangular Arbitrage",
+        "asset_class": "FX",
+        "category": "arbitrage / HFT",
+        "legs": 3,
+        "description": "Circular chain of 3 currency pairs to lock risk-free profit.",
+        "math": "R = Bid(A->B) * Bid(B->C) * Bid(C->A) > 1 + Costs",
+        "pseudocode": "IF (Bid(A->B) * Bid(B->C) * Bid(C->A)) > 1.0005: EXECUTE loop",
+        "execution_profile": {
+          "latency": "HFT",
+          "data_feed": "L2/L3",
+          "order_type": "IOC",
+          "position_sizing": "ArbSizing",
+          "venue": "OTC/Exchange"
+        }
+      },
+      {
+        "id": "TS122",
+        "name": "Commodities - Roll Yields",
+        "asset_class": "Commodities",
+        "category": "term-structure",
+        "legs": "N",
+        "description": "Long Backwardated, Short Contango commodities.",
+        "math": "phi = P_1 / P_2; Signal = Rank(phi)",
+        "pseudocode": "RANK commodities BY phi; BUY highest, SELL lowest",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Futures_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS123",
+        "name": "Commodities - Hedging Pressure",
+        "asset_class": "Commodities",
+        "category": "positioning",
+        "legs": "N",
+        "description": "Trade divergence in COT Hedging Pressure (Hedgers vs Speculators).",
+        "math": "HP = Long / (Long + Short)",
+        "pseudocode": "CALCULATE HP from COT; BUY lower Speculator HP if Hedger HP is bottom quintile",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Alternative/COT",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS124",
+        "name": "Commodities - Portfolio Diversification",
+        "asset_class": "Commodities / Multi-Asset",
+        "category": "allocation",
+        "legs": "N",
+        "description": "Fixed % allocation to broad commodity index for low correlation.",
+        "math": "w_comm = 5% to 15%",
+        "pseudocode": "SOLVE weights to maximize portfolio Sharpe ratio; REBALANCE quarterly",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Index_OHLCV",
+          "order_type": "VWAP",
+          "position_sizing": "Risk_Parity",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS125",
+        "name": "Commodities - Value",
+        "asset_class": "Commodities",
+        "category": "fundamental",
+        "legs": "N",
+        "description": "Long commodities with high P_5yr / P_0 ratio.",
+        "math": "Value_i = P_{i, 5yr} / P_{i, 0}",
+        "pseudocode": "CALCULATE 5-year price ratio; RANK DESC; BUY top_33%",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Futures_Spot",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS126",
+        "name": "Commodities - Skewness Premium",
+        "asset_class": "Commodities",
+        "category": "statistical",
+        "legs": "N",
+        "description": "Long bottom quintile by historical skewness, short top.",
+        "math": "S_i = (1/T) * Σ [ (R - Mean) / StdDev ]^3",
+        "pseudocode": "CALCULATE historical skewness; RANK ASC; BUY bottom_20%; SELL top_20%",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "OHLCV",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS127",
+        "name": "Commodities - Trading with Pricing Models",
+        "asset_class": "Commodities",
+        "category": "stat-arb",
+        "legs": "N",
+        "description": "Trade residuals between OU model futures price and market price.",
+        "math": "dX(t) = kappa * (a - X(t)) * dt + sigma * dW(t)",
+        "pseudocode": "FIT OU model; IF F_market > F_model + threshold: SELL futures",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Futures_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS128",
+        "name": "Futures - Hedging Risk with Futures",
+        "asset_class": "Futures / Multi-Asset",
+        "category": "hedging",
+        "legs": 2,
+        "description": "Short hedge (Long Spot + Short Futures) or Long hedge.",
+        "math": "h = 1 (for perfect match)",
+        "pseudocode": "IF exposure == 'long_physical': SELL futures equal to exposure",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Futures_Spot",
+          "order_type": "LIMIT",
+          "position_sizing": "Beta_Hedging",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS129",
+        "name": "Futures - Cross-Hedging",
+        "asset_class": "Futures / Multi-Asset",
+        "category": "hedging",
+        "legs": 2,
+        "description": "Hedge asset A using highly correlated futures B.",
+        "math": "h* = rho * (sigma_S / sigma_F)",
+        "pseudocode": "RUN regression of Spot on Futures; SELL beta * exposure futures",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Futures_Spot",
+          "order_type": "LIMIT",
+          "position_sizing": "Beta_Hedging",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS130",
+        "name": "Futures - Interest Rate Risk Hedging",
+        "asset_class": "Fixed Income / Futures",
+        "category": "duration-matching",
+        "legs": 2,
+        "description": "Hedge bond portfolio duration with Treasury futures.",
+        "math": "N = (BPV_portfolio / BPV_futures) * Yield_Beta",
+        "pseudocode": "CALCULATE BPV; N = BPV_portfolio / (BPV_futures * CF); SELL N futures",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Yield_Curve/Futures",
+          "order_type": "LIMIT",
+          "position_sizing": "DD_Neutral",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS131",
+        "name": "Futures - Calendar Spreads",
+        "asset_class": "Futures / Commodities",
+        "category": "term-structure",
+        "legs": 2,
+        "description": "Trade spread between near and deferred month futures.",
+        "math": "S = P_1 - P_2",
+        "pseudocode": "IF S < Historical_Mean - 2*StdDev: BUY P_1, SELL P_2",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Futures_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS132",
+        "name": "Futures - Inter-Commodity Spreads (Crack Spread)",
+        "asset_class": "Futures / Commodities",
+        "category": "processing-margin",
+        "legs": 3,
+        "description": "3-2-1 Crack Spread: Long 3 Crude, Short 2 Gas, Short 1 Heat.",
+        "math": "CS = (2 * P_Gas + 1 * P_Heat) - (3 * P_Crude)",
+        "pseudocode": "CALCULATE 3-2-1 Crack; IF Z-score < -2: BUY products, SELL crude",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Futures_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS133",
+        "name": "Futures - Trend Following (TSMOM)",
+        "asset_class": "Futures / Multi-Asset",
+        "category": "macro",
+        "legs": "N",
+        "description": "Long/Short global futures based on 12m time-series momentum.",
+        "math": "Signal = Sign( P_i(t) - P_i(t-12m) )",
+        "pseudocode": "FOR each future: IF 12m return > 0: LONG; ELSE SHORT; SIZE to 10% vol",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Futures_OHLCV",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS134",
+        "name": "Futures - Mean Reversion (Short-Term)",
+        "asset_class": "Futures / Multi-Asset",
+        "category": "stat-arb",
+        "legs": "N",
+        "description": "Contrarian positions based on 1-week to 1-month returns.",
+        "math": "Signal = -Sign( P_i(t) - P_i(t-1w) )",
+        "pseudocode": "CALCULATE 1-week return; RANK ASC; BUY bottom 20%, SELL top 20%",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Futures_OHLCV",
+          "order_type": "LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS135",
+        "name": "Structured Assets - CDO Tranche Trading",
+        "asset_class": "Structured Credit",
+        "category": "correlation",
+        "legs": 2,
+        "description": "Trade implied correlation skew between CDX tranches.",
+        "math": "Tranche_Loss = max(0, min(Portfolio_Loss - Attachment, Detachment - Attachment))",
+        "pseudocode": "IF corr skew wide: SELL Equity protection, BUY Mezzanine protection",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "CDS/CDO_OTC",
+          "order_type": "OTC_Contract",
+          "position_sizing": "Delta_Neutral",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS136",
+        "name": "Structured Assets - MBS OAS Trading",
+        "asset_class": "Fixed Income / Structured",
+        "category": "prepayment-risk",
+        "legs": 2,
+        "description": "Long MBS + Short Treasury Futures (Duration Hedged).",
+        "math": "OAS = Yield_MBS - Yield_Treasury - Z_Spread",
+        "pseudocode": "IF OAS > Historical_Mean + 1*StdDev: BUY MBS; SELL Treasury futures",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "MBS/Treasury",
+          "order_type": "LIMIT",
+          "position_sizing": "DD_Neutral",
+          "venue": "OTC/Exchange"
+        }
+      },
+      {
+        "id": "TS137",
+        "name": "Distressed Debt - Passive Diversified",
+        "asset_class": "Fixed Income / Distressed",
+        "category": "risk-premium",
+        "legs": "N",
+        "description": "Equal-weight portfolio of bonds trading < $50 or YTM > 15%.",
+        "math": "E[R] = (1 - P_default) * R_recovery + P_default * R_total_loss",
+        "pseudocode": "FILTER bonds Price < $50; BUY equal-weight basket of top 50",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Fundamental/Bond",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS138",
+        "name": "Distressed Debt - Capital Structure Arbitrage",
+        "asset_class": "Multi-Asset / Distressed",
+        "category": "arbitrage",
+        "legs": 2,
+        "description": "Long Senior Debt + Short Common Equity of distressed firm.",
+        "math": "CSA_Signal = Implied_EV_from_Bonds - Market_EV_from_Stock",
+        "pseudocode": "IF Bond_EV > Stock_EV: BUY Senior Bonds, SHORT Stock",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Fundamental/Bond/Equity",
+          "order_type": "LIMIT",
+          "position_sizing": "Delta_Neutral",
+          "venue": "Exchange/OTC"
+        }
+      },
+      {
+        "id": "TS139",
+        "name": "Real Assets - REITs (Momentum & Value)",
+        "asset_class": "Real Estate",
+        "category": "factor-investing",
+        "legs": "N",
+        "description": "Long REITs with high FFO yield and strong 6m momentum.",
+        "math": "Signal = Rank(FFO_Yield) + Rank(6m_Momentum)",
+        "pseudocode": "CALCULATE FFO Yield and 6m return; COMBINE ranks; BUY top 20%",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Fundamental/OHLCV",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS140",
+        "name": "Cryptocurrencies - Trend Following",
+        "asset_class": "Crypto",
+        "category": "momentum",
+        "legs": "N",
+        "description": "Long BTC/ETH when Price > 200-day MA; Stablecoins when <.",
+        "math": "Trend_Filter = P(t) > MA(T)",
+        "pseudocode": "IF Price > 200-SMA: BUY and HOLD; IF < : SELL and HOLD Stablecoins",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Crypto_OHLCV",
+          "order_type": "MARKET/LIMIT",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Crypto_Exchange"
+        }
+      },
+      {
+        "id": "TS141",
+        "name": "Municipal Bond Tax Arbitrage",
+        "asset_class": "Fixed Income / Tax",
+        "category": "tax arbitrage",
+        "legs": 2,
+        "description": "Short Cash (Loan) + Long Tax-Exempt Muni Bond.",
+        "math": "Return = r_long - r_short * (1 - τ)",
+        "pseudocode": "IF r_muni > r_loan * (1 - τ): BORROW cash, BUY muni",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Yield_Curve",
+          "order_type": "LIMIT",
+          "position_sizing": "Leverage_Constrained",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS142",
+        "name": "Cross-Border Tax Arbitrage",
+        "asset_class": "Equities / Tax",
+        "category": "tax arbitrage",
+        "legs": 2,
+        "description": "Short stock cum-dividend + Long stock ex-dividend (or swap).",
+        "math": "Profit = S_cum - S_ex + Tax_Credit_Share - Costs",
+        "pseudocode": "IF foreign_investor AND imputation_system: SELL cum-div, BUY ex-div",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Corporate_Actions/L1",
+          "order_type": "LIMIT",
+          "position_sizing": "ArbSizing",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS143",
+        "name": "Inflation Hedging—Inflation Swaps",
+        "asset_class": "Fixed Income / Derivatives",
+        "category": "inflation hedging",
+        "legs": 1,
+        "description": "Long Inflation Swap (Receive floating CPI, Pay fixed).",
+        "math": "Payoff = Notional * [(I(T) / I(0) - 1) - K * T]",
+        "pseudocode": "IF inflation_expectation > breakeven: BUY inflation_swap",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Macro/CPI",
+          "order_type": "OTC_Contract",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS144",
+        "name": "TIPS-Treasury Arbitrage",
+        "asset_class": "Fixed Income",
+        "category": "arbitrage",
+        "legs": "N",
+        "description": "Short Treasury + Long TIPS + Long Inflation Swaps + Long STRIPS.",
+        "math": "C(0) = P_Treasury - (P_TIPS + P_Swaps + P_STRIPS)",
+        "pseudocode": "IF P_Treasury > P_rep + Costs: SHORT Treasury, BUY replicating portfolio",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Yield_Curve/TIPS",
+          "order_type": "LIMIT",
+          "position_sizing": "ArbSizing",
+          "venue": "OTC/Exchange"
+        }
+      },
+      {
+        "id": "TS145",
+        "name": "Weather Risk—Demand Hedging",
+        "asset_class": "Commodities / Weather",
+        "category": "hedging",
+        "legs": 1,
+        "description": "Long HDD / Short CDD futures to hedge weather demand risk.",
+        "math": "CDD = Max(T_avg - T_base, 0); HDD = Max(T_base - T_avg, 0)",
+        "pseudocode": "IF negative correlation with CDD: BUY CDD puts or SHORT CDD futures",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Weather_Index",
+          "order_type": "LIMIT",
+          "position_sizing": "Beta_Hedging",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS146",
+        "name": "Energy—Spark Spread",
+        "asset_class": "Energy / Commodities",
+        "category": "relative-value",
+        "legs": 2,
+        "description": "Long Electricity + Short Natural Gas (scaled by Heat Rate).",
+        "math": "Spark Spread = P_elec - (HR * P_gas)",
+        "pseudocode": "IF expected_spark > operating_costs: BUY elec, SELL gas (adjusted by HR)",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Energy_Futures",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS147",
+        "name": "Buying and Holding Distressed Debt",
+        "asset_class": "Distressed Assets",
+        "category": "passive / value",
+        "legs": "N",
+        "description": "Long diversified basket of bonds with >1000 bps spread.",
+        "math": "E[R] = (1 - P_default) * R_recovery + P_default * R_total_loss",
+        "pseudocode": "FILTER bonds spread > 1000 bps; BUY equally-weighted portfolio of 50+",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Fundamental/Bond",
+          "order_type": "LIMIT",
+          "position_sizing": "Fixed_Fractional",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS148",
+        "name": "Active Distressed Investing",
+        "asset_class": "Distressed Assets",
+        "category": "active / control",
+        "legs": 1,
+        "description": "Long distressed debt to acquire control via 'loan-to-own'.",
+        "math": "Strategy: Acquire debt > X% to gain voting rights",
+        "pseudocode": "ACCUMULATE senior secured debt; PROPOSE reorganization plan for equity",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Fundamental/Legal",
+          "order_type": "OTC_Block",
+          "position_sizing": "Control_Threshold",
+          "venue": "OTC"
+        }
+      },
+      {
+        "id": "TS149",
+        "name": "Distress Risk Puzzle",
+        "asset_class": "Equities",
+        "category": "cross-sectional / factor",
+        "legs": "N",
+        "description": "Long low bankruptcy probability stocks, short high probability.",
+        "math": "P_i = Logistic_Regression(Financial_Ratios)",
+        "pseudocode": "CALCULATE bankruptcy prob; RANK ASC; BUY bottom_10%; SHORT top_10%",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Fundamental",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS150",
+        "name": "Mixed-Asset Diversification with Real Estate",
+        "asset_class": "Real Estate",
+        "category": "diversification",
+        "legs": "N",
+        "description": "Traditional stock/bond portfolio + 5-15% Real Estate.",
+        "math": "Maximize Sharpe Ratio subject to w_stock + w_bond + w_re = 1",
+        "pseudocode": "CALCULATE covariance matrix; OPTIMIZE weights; REBALANCE quarterly",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Multi_Asset",
+          "order_type": "VWAP",
+          "position_sizing": "Risk_Parity",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS151",
+        "name": "Real Estate Momentum—Regional Approach",
+        "asset_class": "Real Estate",
+        "category": "momentum",
+        "legs": "N",
+        "description": "Long top decile of MSAs by past return, short bottom.",
+        "math": "R_i_cum = Return of MSA_i over past T months",
+        "pseudocode": "CALCULATE 12m return for regional indices; RANK DESC; BUY top_10%",
+        "execution_profile": {
+          "latency": "LFT",
+          "data_feed": "Regional_Index",
+          "order_type": "VWAP",
+          "position_sizing": "Volatility_Targeting",
+          "venue": "Exchange"
+        }
+      },
+      {
+        "id": "TS151_B",
+        "name": "Cross-Border Tax Arbitrage with Options",
+        "asset_class": "Tax / Options",
+        "category": "tax arbitrage",
+        "legs": 2,
+        "description": "Sell stock cum-dividend + Write deep ITM put to capture tax credit.",
+        "math": "V_put <= K - S_0 + D",
+        "pseudocode": "IF foreign_investor: SELL stock cum-div; WRITE deep ITM put",
+        "execution_profile": {
+          "latency": "MFT",
+          "data_feed": "Options_Chain/Corporate_Actions",
+          "order_type": "LIMIT",
+          "position_sizing": "ArbSizing",
+          "venue": "Exchange"
+        }
+      }
+    ]
+  }
+}
